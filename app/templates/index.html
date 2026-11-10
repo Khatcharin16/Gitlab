@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>BJT Common‑Emitter DC Bias — ENG29 2121</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<main>
+
+  <h1>BJT Common‑Emitter DC Bias</h1>
+  <p>ENG29 2121 · <em>DC operating point</em></p>
+
+  <form method="post" action="/">
+    <table>
+      <tr><td><label for="vcc">VCC [V]</label></td>
+          <td><input type="number" step="0.1" name="vcc" value="{{ form_values.vcc }}"
+                     min="0.1" required></td></tr>
+
+      <tr><td><label for="r1">R1 [Ω]</label></td>
+          <td><input type="number" step="1" name="r1" value="{{ form_values.r1 }}"
+                     min="1" required></td></tr>
+
+      <tr><td><label for="r2">R2 [Ω]</label></td>
+          <td><input type="number" step="1" name="r2" value="{{ form_values.r2 }}"
+                     min="1" required></td></tr>
+
+      <tr><td><label for="rc">RC [Ω]</label></td>
+          <td><input type="number" step="1" name="rc" value="{{ form_values.rc }}"
+                     min="1" required></td></tr>
+
+      <tr><td><label for="re">RE [Ω]</label></td>
+          <td><input type="number" step="1" name="re" value="{{ form_values.re }}"
+                     min="0" required></td></tr>
+
+      <tr><td><label for="beta">β</label></td>
+          <td><input type="number" step="1" name="beta" value="{{ form_values.beta }}"
+                     min="1" max="2000" required></td></tr>
+
+      <tr><td><label for="vbe">VBE [V]</label></td>
+          <td><input type="number" step="0.1" name="vbe" value="{{ form_values.vbe }}"
+                     min="0.4" max="1.0" required></td></tr>
+    </table>
+
+    <div><button type="submit">Calculate</button></div>
+  </form>
+
+  {% if error_messages %}
+  <div class="error">
+    <strong>Validation errors:</strong>
+    <ul>
+    {% for msg in error_messages %}
+      <li>{{ msg }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if result is not none %}
+  <hr>
+
+  <!-- === Region & warnings === -->
+  <div class="region">
+    <strong>Region:</strong> {{ result.region }}
+    {% if result.warning %}<span class="warn">{{ result.warning }}</span>{% endif %}
+  </div>
+
+  <!-- === Operating point === -->
+  <div class="op-point">
+    <table>
+      <tr><th>IB</th><th>{{ result.ib }}</th></tr>
+      <tr><th>IC</th><th>{{ result.ic }}</th></tr>
+      <tr><th>IE</th><th>{{ result.ie }}</th></tr>
+      <tr><th>VBE</th><th>{{ result.vbe }}</th></tr>
+      <tr><th>VCE</th><th>{{ result.vce }}</th></tr>
+      <tr><th>VE</th><th>{{ result.ve }}</th></tr>
+      <tr><th>VB</th><th>{{ result.vb }}</th></tr>
+      <tr><th>VC</th><th>{{ result.vc }}</th></tr>
+      <tr><th>VBC</th><th>{{ result.vbc }}</th></tr>
+    </table>
+  </div>
+
+  <!-- === Independent check (nodal) === -->
+  <div class="comparison">
+    <table>
+      <tr><th>            Thévenin</th><th>   Nodal</th><th>Δ</th></tr>
+      <tr><th>IC</th><th>{{ result.ic_th }}</th><th>{{ result.ic_node }}</th><th>{{ result.ic_delta }}</th></tr>
+      <tr><th>VCE</th><th>{{ result.vce_th }}</th><th>{{ result.vce_node }}</th><th>{{ result.vce_delta }}</th></tr>
+      <tr><th colspan="3" style="text-align:center">{{ result.match }}</th></tr>
+    </table>
+  </div>
+
+  {% endif %}
+
+</main>
+
+</body>
+</html>
