@@ -8,12 +8,6 @@ DC Circuit Calculator
 ENG29 2121 BJT Common-Emitter DC Bias Web App
 A Flask-based web application for calculating the DC operating point of a common-emitter BJT bias circuit.
 
-## Links
-
-- Repository: <https://github.com/Khatcharin16/Gitlab>
-- Web app (local): <http://127.0.0.1:5000>
-- UI preview: [`docs/ui-preview.png`](docs/ui-preview.png)
-
 ## Running the app
 
 ```bash

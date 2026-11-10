@@ -505,6 +505,26 @@ input[type="number"] {
 }
 
 /* --------------------------------------------------------------------------
+   Repository link
+   -------------------------------------------------------------------------- */
+.site-footer {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #5b7186;
+}
+
+.site-footer a {
+  color: var(--teal);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
 @media (max-width: 1380px) {
