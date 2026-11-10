@@ -1,0 +1,555 @@
+/* ==========================================================================
+   ENG29 2121 — Lab 02: BJT DC Bias Web App
+   Light dashboard theme: white cards, soft blue page, teal accents.
+   ========================================================================== */
+
+:root {
+  --bg: #eef5fb;
+  --card: #ffffff;
+  --border: #d7e5f2;
+  --navy: #102a43;
+  --navy-strong: #0b2540;
+  --muted: #51697e;
+  --teal: #0d7a8a;
+  --teal-dark: #0a6573;
+  --blue-soft: #dbe9fd;
+  --table-head: #e9f3fc;
+  --green-bg: #e9faee;
+  --green-border: #b9e8c5;
+  --green-text: #166534;
+  --amber-bg: #fff7e6;
+  --amber-border: #f2d28a;
+  --amber-text: #8a5a00;
+  --red-bg: #fdecec;
+  --red-border: #f3b6b6;
+  --red-text: #9b1c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--navy);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.page {
+  max-width: 1620px;
+  margin: 0 auto;
+  padding: 20px 26px 28px;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 6px 4px 20px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.chip-icon {
+  width: 62px;
+  height: 62px;
+  flex: none;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--navy-strong);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+}
+
+.course-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--blue-soft);
+  color: #173b63;
+  border-radius: 12px;
+  padding: 14px 22px;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.course-badge svg {
+  width: 30px;
+  height: 30px;
+  color: var(--teal);
+  flex: none;
+}
+
+/* --------------------------------------------------------------------------
+   Three-column dashboard
+   -------------------------------------------------------------------------- */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.02fr) minmax(380px, 1.3fr) minmax(320px, 1.02fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 22px 22px;
+  box-shadow: 0 1px 2px rgba(16, 42, 67, 0.05),
+    0 8px 24px -20px rgba(16, 42, 67, 0.35);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.card-head .icon {
+  color: var(--teal);
+  display: inline-flex;
+  flex: none;
+}
+
+.card-head .icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 1.38rem;
+  color: var(--navy-strong);
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Input parameters
+   -------------------------------------------------------------------------- */
+.param-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 98px 84px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.param-row label {
+  font-size: 0.99rem;
+  color: #1c3a55;
+  min-width: 0;
+}
+
+.param-row .sym {
+  font-family: "Cambria Math", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.06rem;
+}
+
+.param-row .desc {
+  color: #3d566d;
+  margin-left: 3px;
+}
+
+.param-row input,
+.param-row select {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.98rem;
+  color: #12293f;
+  background: #fff;
+  border: 1px solid #c8d9e8;
+  border-radius: 8px;
+}
+
+.param-row select {
+  padding-right: 4px;
+}
+
+.param-row input:focus,
+.param-row select:focus {
+  outline: 2px solid rgba(13, 122, 138, 0.35);
+  border-color: var(--teal);
+}
+
+/* Clean number boxes (no spinner arrows) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.btn-calc {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--teal);
+  color: #fff;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.btn-calc:hover {
+  background: var(--teal-dark);
+}
+
+.btn-calc:active {
+  transform: translateY(1px);
+}
+
+.btn-calc svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* --------------------------------------------------------------------------
+   Circuit schematic
+   -------------------------------------------------------------------------- */
+.circuit-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.schematic {
+  width: 100%;
+  height: auto;
+  max-height: 480px;
+}
+
+.schematic .wire {
+  stroke: #17324c;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.schematic .comp {
+  fill: none;
+  stroke: #17324c;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.schematic .bjt-body {
+  fill: #dcecf7;
+  stroke: #17324c;
+  stroke-width: 2.4;
+}
+
+.schematic .bjt-bar {
+  stroke: #17324c;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.schematic .node {
+  fill: #17324c;
+}
+
+.schematic .gnd {
+  stroke: #17324c;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.schematic .lbl {
+  fill: #17324c;
+  font-family: "Cambria Math", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 19px;
+}
+
+.schematic .val {
+  fill: #17324c;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-style: normal;
+  font-size: 16px;
+}
+
+.schematic .sub {
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   Results
+   -------------------------------------------------------------------------- */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.results-table th {
+  width: 38%;
+  text-align: left;
+  padding: 12px 14px;
+  font-family: "Cambria Math", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: #17324c;
+  background: var(--table-head);
+  border: 1px solid #dbe9f5;
+}
+
+.results-table td {
+  text-align: right;
+  padding: 12px 14px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--navy-strong);
+  border: 1px solid #dbe9f5;
+  background: #fff;
+}
+
+.status {
+  margin-top: 18px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid;
+}
+
+.status svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  margin-top: 2px;
+}
+
+.status .status-title {
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+
+.status .status-text {
+  margin-top: 4px;
+  font-size: 0.94rem;
+}
+
+.status.ok {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green-text);
+}
+
+.status.warn {
+  background: var(--amber-bg);
+  border-color: var(--amber-border);
+  color: var(--amber-text);
+}
+
+.status.bad {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red-text);
+}
+
+.cross-check,
+.aux-values {
+  margin: 14px 2px 0;
+  font-size: 0.86rem;
+  color: #5b7186;
+}
+
+.aux-values {
+  margin-top: 6px;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  vertical-align: 1px;
+}
+
+.badge.match {
+  background: #e6f6ea;
+  color: var(--green-text);
+}
+
+.badge.delta {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+}
+
+.empty {
+  margin: 8px 2px;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+/* --------------------------------------------------------------------------
+   Validation errors
+   -------------------------------------------------------------------------- */
+.error-box {
+  margin-top: 16px;
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--red-text);
+}
+
+.error-box strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.error-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-box li {
+  font-size: 0.92rem;
+}
+
+/* --------------------------------------------------------------------------
+   Week 2 Goal banner
+   -------------------------------------------------------------------------- */
+.goal {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  background: #e4f0fc;
+  border: 1px solid #cfe2f5;
+  border-radius: 16px;
+  padding: 16px 22px;
+}
+
+.goal-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: #d3e6fa;
+  border-radius: 11px;
+  padding: 12px 20px;
+  font-size: 1.32rem;
+  font-weight: 800;
+  color: var(--navy-strong);
+  white-space: nowrap;
+}
+
+.goal-title svg {
+  width: 28px;
+  height: 28px;
+  color: var(--teal);
+  flex: none;
+}
+
+.goal p {
+  margin: 0;
+  font-size: 1.02rem;
+  color: #16324a;
+}
+
+.goal em {
+  font-family: "Cambria Math", Georgia, "Times New Roman", serif;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 1380px) {
+  .grid {
+    grid-template-columns: minmax(300px, 1fr) minmax(340px, 1.15fr);
+  }
+
+  .results-card {
+    grid-column: 1 / -1;
+  }
+
+  .results-table th {
+    width: 26%;
+  }
+}
+
+@media (max-width: 960px) {
+  .page {
+    padding: 16px 14px 22px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-card {
+    grid-column: auto;
+  }
+
+  .results-table th {
+    width: 38%;
+  }
+
+  .brand h1 {
+    font-size: 1.55rem;
+  }
+
+  .course-badge {
+    font-size: 0.92rem;
+    padding: 10px 16px;
+  }
+
+  .goal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}

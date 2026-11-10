@@ -1,100 +1,374 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>BJT Common‑Emitter DC Bias — ENG29 2121</title>
+  <title>Lab 02: BJT DC Bias Web App — ENG29 2121</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+<div class="page">
 
-<main>
+  <!-- ====================================================================
+       Header
+       ==================================================================== -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="chip-icon" viewBox="0 0 64 64" fill="none" stroke="#0d7a8a"
+           stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <rect x="15" y="15" width="34" height="34" rx="5"/>
+        <rect x="25" y="25" width="14" height="14" rx="2"/>
+        <path d="M23 8v7M32 8v7M41 8v7M23 49v7M32 49v7M41 49v7
+                 M8 23h7M8 32h7M8 41h7M49 23h7M49 32h7M49 41h7"/>
+      </svg>
+      <div>
+        <h1>Lab 02: BJT DC Bias Web App</h1>
+        <p class="subtitle">ENG29 2121 – Common Emitter (Voltage Divider Bias)</p>
+      </div>
+    </div>
 
-  <h1>BJT Common‑Emitter DC Bias</h1>
-  <p>ENG29 2121 · <em>DC operating point</em></p>
+    <div class="course-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/>
+      </svg>
+      <span>Computer Programming for<br>Electrical Engineers</span>
+    </div>
+  </header>
 
-  <form method="post" action="/">
-    <table>
-      <tr><td><label for="vcc">VCC [V]</label></td>
-          <td><input type="number" step="0.1" name="vcc" value="{{ form_values.vcc }}"
-                     min="0.1" required></td></tr>
+  <!-- ====================================================================
+       Dashboard
+       ==================================================================== -->
+  <main class="grid">
 
-      <tr><td><label for="r1">R1 [Ω]</label></td>
-          <td><input type="number" step="1" name="r1" value="{{ form_values.r1 }}"
-                     min="1" required></td></tr>
+    <!-- ----------------------------------------------------------------
+         Input Parameters
+         ---------------------------------------------------------------- -->
+    <section class="card input-card">
+      <div class="card-head">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3
+                     1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5
+                     1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9
+                     1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1
+                     1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3
+                     1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5
+                     1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9
+                     1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+          </svg>
+        </span>
+        <h2>Input Parameters</h2>
+      </div>
 
-      <tr><td><label for="r2">R2 [Ω]</label></td>
-          <td><input type="number" step="1" name="r2" value="{{ form_values.r2 }}"
-                     min="1" required></td></tr>
+      <form method="post" action="/">
+        <div class="param-row">
+          <label for="vcc"><span class="sym">V<sub>CC</sub></span>
+            <span class="desc">(Supply Voltage)</span></label>
+          <input id="vcc" type="number" step="any" name="vcc"
+                 value="{{ form_values.vcc }}" required>
+          <select name="vcc_unit" aria-label="VCC unit">
+            <option value="V" {% if form_values.vcc_unit == 'V' %}selected{% endif %}>V</option>
+            <option value="mV" {% if form_values.vcc_unit == 'mV' %}selected{% endif %}>mV</option>
+          </select>
+        </div>
 
-      <tr><td><label for="rc">RC [Ω]</label></td>
-          <td><input type="number" step="1" name="rc" value="{{ form_values.rc }}"
-                     min="1" required></td></tr>
+        <div class="param-row">
+          <label for="r1"><span class="sym">R<sub>1</sub></span>
+            <span class="desc">(Upper Divider)</span></label>
+          <input id="r1" type="number" step="any" name="r1"
+                 value="{{ form_values.r1 }}" required>
+          <select name="r1_unit" aria-label="R1 unit">
+            <option value="ohm" {% if form_values.r1_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.r1_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.r1_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
 
-      <tr><td><label for="re">RE [Ω]</label></td>
-          <td><input type="number" step="1" name="re" value="{{ form_values.re }}"
-                     min="0" required></td></tr>
+        <div class="param-row">
+          <label for="r2"><span class="sym">R<sub>2</sub></span>
+            <span class="desc">(Lower Divider)</span></label>
+          <input id="r2" type="number" step="any" name="r2"
+                 value="{{ form_values.r2 }}" required>
+          <select name="r2_unit" aria-label="R2 unit">
+            <option value="ohm" {% if form_values.r2_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.r2_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.r2_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
 
-      <tr><td><label for="beta">β</label></td>
-          <td><input type="number" step="1" name="beta" value="{{ form_values.beta }}"
-                     min="1" max="2000" required></td></tr>
+        <div class="param-row">
+          <label for="rc"><span class="sym">R<sub>C</sub></span>
+            <span class="desc">(Collector Resistor)</span></label>
+          <input id="rc" type="number" step="any" name="rc"
+                 value="{{ form_values.rc }}" required>
+          <select name="rc_unit" aria-label="RC unit">
+            <option value="ohm" {% if form_values.rc_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.rc_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.rc_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
 
-      <tr><td><label for="vbe">VBE [V]</label></td>
-          <td><input type="number" step="0.1" name="vbe" value="{{ form_values.vbe }}"
-                     min="0.4" max="1.0" required></td></tr>
-    </table>
+        <div class="param-row">
+          <label for="re"><span class="sym">R<sub>E</sub></span>
+            <span class="desc">(Emitter Resistor)</span></label>
+          <input id="re" type="number" step="any" name="re"
+                 value="{{ form_values.re }}" required>
+          <select name="re_unit" aria-label="RE unit">
+            <option value="ohm" {% if form_values.re_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.re_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.re_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
 
-    <div><button type="submit">Calculate</button></div>
-  </form>
+        <div class="param-row">
+          <label for="beta"><span class="sym">β</span>
+            <span class="desc">(Current Gain)</span></label>
+          <input id="beta" type="number" step="any" name="beta"
+                 value="{{ form_values.beta }}" required>
+          <select name="beta_unit" aria-label="Beta unit">
+            <option value="-" selected>–</option>
+          </select>
+        </div>
 
-  {% if error_messages %}
-  <div class="error">
-    <strong>Validation errors:</strong>
-    <ul>
-    {% for msg in error_messages %}
-      <li>{{ msg }}</li>
-    {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
+        <div class="param-row">
+          <label for="vbe"><span class="sym">V<sub>BE</sub></span>
+            <span class="desc">(Base–Emitter Voltage)</span></label>
+          <input id="vbe" type="number" step="any" name="vbe"
+                 value="{{ form_values.vbe }}" required>
+          <select name="vbe_unit" aria-label="VBE unit">
+            <option value="V" {% if form_values.vbe_unit == 'V' %}selected{% endif %}>V</option>
+            <option value="mV" {% if form_values.vbe_unit == 'mV' %}selected{% endif %}>mV</option>
+          </select>
+        </div>
 
-  {% if result is not none %}
-  <hr>
+        <button class="btn-calc" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="2" width="16" height="20" rx="2"/>
+            <path d="M8 6h8M8 11h1M12 11h1M16 11h1M8 15h1M12 15h1M16 15h1M8 19h1M12 19h1M16 19h1"/>
+          </svg>
+          Calculate DC Bias
+        </button>
+      </form>
 
-  <!-- === Region & warnings === -->
-  <div class="region">
-    <strong>Region:</strong> {{ result.region }}
-    {% if result.warning %}<span class="warn">{{ result.warning }}</span>{% endif %}
-  </div>
+      {% if error_messages %}
+      <div class="error-box" role="alert">
+        <strong>Validation errors:</strong>
+        <ul>
+        {% for msg in error_messages %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </section>
 
-  <!-- === Operating point === -->
-  <div class="op-point">
-    <table>
-      <tr><th>IB</th><th>{{ result.ib }}</th></tr>
-      <tr><th>IC</th><th>{{ result.ic }}</th></tr>
-      <tr><th>IE</th><th>{{ result.ie }}</th></tr>
-      <tr><th>VBE</th><th>{{ result.vbe }}</th></tr>
-      <tr><th>VCE</th><th>{{ result.vce }}</th></tr>
-      <tr><th>VE</th><th>{{ result.ve }}</th></tr>
-      <tr><th>VB</th><th>{{ result.vb }}</th></tr>
-      <tr><th>VC</th><th>{{ result.vc }}</th></tr>
-      <tr><th>VBC</th><th>{{ result.vbc }}</th></tr>
-    </table>
-  </div>
+    <!-- ----------------------------------------------------------------
+         Circuit
+         ---------------------------------------------------------------- -->
+    <section class="card circuit-card">
+      <div class="card-head">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="2.6"/>
+            <circle cx="6" cy="12" r="2.6"/>
+            <circle cx="18" cy="19" r="2.6"/>
+            <path d="M8.4 13.4l7.2 4.2M15.6 6.4L8.4 10.6"/>
+          </svg>
+        </span>
+        <h2>Circuit: Common-Emitter Amplifier</h2>
+      </div>
 
-  <!-- === Independent check (nodal) === -->
-  <div class="comparison">
-    <table>
-      <tr><th>            Thévenin</th><th>   Nodal</th><th>Δ</th></tr>
-      <tr><th>IC</th><th>{{ result.ic_th }}</th><th>{{ result.ic_node }}</th><th>{{ result.ic_delta }}</th></tr>
-      <tr><th>VCE</th><th>{{ result.vce_th }}</th><th>{{ result.vce_node }}</th><th>{{ result.vce_delta }}</th></tr>
-      <tr><th colspan="3" style="text-align:center">{{ result.match }}</th></tr>
-    </table>
-  </div>
+      <div class="circuit-wrap">
+        <svg class="schematic" viewBox="0 0 460 500" role="img"
+             aria-label="NPN common-emitter amplifier with voltage-divider bias">
+          <defs>
+            <marker id="emitter-arrow" viewBox="0 0 10 10" refX="8" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#17324c"/>
+            </marker>
+          </defs>
 
-  {% endif %}
+          <!-- Transistor body -->
+          <circle class="bjt-body" cx="286" cy="290" r="42"/>
 
-</main>
+          <!-- Wires -->
+          <g class="wire">
+            <!-- VCC rail -->
+            <line x1="150" y1="40" x2="300" y2="40"/>
+            <line x1="300" y1="40" x2="300" y2="78"/>
+            <line x1="300" y1="142" x2="300" y2="270"/>
+            <!-- R1 branch -->
+            <line x1="150" y1="40" x2="150" y2="108"/>
+            <line x1="150" y1="172" x2="150" y2="350"/>
+            <!-- Base lead -->
+            <line x1="150" y1="290" x2="262" y2="290"/>
+            <!-- R2 / RE lower leads -->
+            <line x1="150" y1="414" x2="150" y2="452"/>
+            <line x1="300" y1="330" x2="300" y2="350"/>
+            <line x1="300" y1="414" x2="300" y2="452"/>
+            <!-- Transistor terminals -->
+            <line x1="300" y1="270" x2="262" y2="282"/>
+            <line x1="262" y1="298" x2="300" y2="312"
+                  marker-end="url(#emitter-arrow)"/>
+            <line x1="300" y1="312" x2="300" y2="330"/>
+          </g>
 
+          <!-- Resistors -->
+          <polyline class="comp" points="300,78 288,86 312,102 288,118 312,134 300,142"/>
+          <polyline class="comp" points="150,108 138,116 162,132 138,148 162,164 150,172"/>
+          <polyline class="comp" points="150,350 138,358 162,374 138,390 162,406 150,414"/>
+          <polyline class="comp" points="300,350 288,358 312,374 288,390 312,406 300,414"/>
+
+          <!-- Transistor base bar -->
+          <line class="bjt-bar" x1="262" y1="270" x2="262" y2="310"/>
+
+          <!-- Junctions -->
+          <circle class="node" cx="300" cy="40" r="4.5"/>
+          <circle class="node" cx="150" cy="290" r="4.5"/>
+
+          <!-- Grounds -->
+          <g class="gnd">
+            <line x1="130" y1="452" x2="170" y2="452"/>
+            <line x1="138" y1="460" x2="162" y2="460"/>
+            <line x1="146" y1="468" x2="154" y2="468"/>
+          </g>
+          <g class="gnd">
+            <line x1="280" y1="452" x2="320" y2="452"/>
+            <line x1="288" y1="460" x2="312" y2="460"/>
+            <line x1="296" y1="468" x2="304" y2="468"/>
+          </g>
+
+          <!-- Labels -->
+          <text class="lbl" x="300" y="24" text-anchor="middle">
+            V<tspan class="sub" dy="5">CC</tspan><tspan class="val" dy="-5"> = {{ circuit.vcc }}</tspan>
+          </text>
+
+          <text class="lbl" x="320" y="104">
+            R<tspan class="sub" dy="5">C</tspan>
+          </text>
+          <text class="val" x="320" y="128">{{ circuit.rc }}</text>
+
+          <text class="lbl" x="130" y="128" text-anchor="end">
+            R<tspan class="sub" dy="5">1</tspan>
+          </text>
+          <text class="val" x="130" y="152" text-anchor="end">{{ circuit.r1 }}</text>
+
+          <text class="lbl" x="130" y="372" text-anchor="end">
+            R<tspan class="sub" dy="5">2</tspan>
+          </text>
+          <text class="val" x="130" y="396" text-anchor="end">{{ circuit.r2 }}</text>
+
+          <text class="lbl" x="320" y="372">
+            R<tspan class="sub" dy="5">E</tspan>
+          </text>
+          <text class="val" x="320" y="396">{{ circuit.re }}</text>
+
+          <text class="lbl" x="346" y="284">
+            Q<tspan class="sub" dy="5">1</tspan>
+          </text>
+          <text class="val" x="346" y="306">NPN</text>
+          <text class="val" x="346" y="328">(β = {{ circuit.beta }})</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------
+         Results
+         ---------------------------------------------------------------- -->
+    <section class="card results-card">
+      <div class="card-head">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20V11M9 20V5M14 20v-6M19 20V8"/>
+          </svg>
+        </span>
+        <h2>DC Bias Results</h2>
+      </div>
+
+      {% if result %}
+      <table class="results-table">
+        <tbody>
+          <tr><th scope="row">V<sub>B</sub></th><td>{{ result.vb }}</td></tr>
+          <tr><th scope="row">V<sub>E</sub></th><td>{{ result.ve }}</td></tr>
+          <tr><th scope="row">V<sub>C</sub></th><td>{{ result.vc }}</td></tr>
+          <tr><th scope="row">V<sub>CE</sub></th><td>{{ result.vce }}</td></tr>
+          <tr><th scope="row">I<sub>B</sub></th><td>{{ result.ib }}</td></tr>
+          <tr><th scope="row">I<sub>C</sub></th><td>{{ result.ic }}</td></tr>
+          <tr><th scope="row">I<sub>E</sub></th><td>{{ result.ie }}</td></tr>
+        </tbody>
+      </table>
+
+      <div class="status {{ result.status_class }}">
+        {% if result.status_class == 'ok' %}
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="11" fill="#1f9d4d"/>
+          <path d="M7 12.4l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        {% elif result.status_class == 'warn' %}
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3l9.5 17H2.5z" fill="#f2b632"/>
+          <path d="M12 9v5" stroke="#7a4d00" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="12" cy="17.2" r="1.2" fill="#7a4d00"/>
+        </svg>
+        {% else %}
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="11" fill="#d64545"/>
+          <path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2.4"
+                stroke-linecap="round"/>
+        </svg>
+        {% endif %}
+        <div>
+          <div class="status-title">{{ result.status_title }}</div>
+          <div class="status-text">{{ result.status_text|safe }}</div>
+        </div>
+      </div>
+
+      {% if result.show_check %}
+      <p class="cross-check">
+        Nodal cross-check:
+        <span class="badge {{ 'match' if result.match == 'MATCH' else 'delta' }}">{{ result.match }}</span>
+        ΔI<sub>C</sub> {{ result.ic_delta }} · ΔV<sub>CE</sub> {{ result.vce_delta }}
+      </p>
+      {% endif %}
+      <p class="aux-values">
+        V<sub>BE</sub> = {{ result.vbe }} · V<sub>BC</sub> = {{ result.vbc }}
+      </p>
+      {% else %}
+      <p class="empty">Enter the circuit parameters and press
+        <strong>Calculate DC Bias</strong> to see the operating point.</p>
+      {% endif %}
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       Week 2 Goal
+       ==================================================================== -->
+  <footer class="goal">
+    <div class="goal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="12" cy="12" r="5"/>
+        <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+      </svg>
+      Week 2 Goal
+    </div>
+    <p><strong>Rough target for this lab:</strong> Build a Flask web app that takes
+      the circuit parameters, computes the BJT DC bias
+      (<em>V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
+      I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub></em>) for a common-emitter
+      amplifier with voltage-divider bias, and displays the results.</p>
+  </footer>
+
+</div>
 </body>
 </html>

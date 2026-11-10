@@ -139,20 +139,19 @@ IC      1.3230 mA    1.3230 mA  0.000%   MATCH
 VCE     4.4500 V     4.4500 V   0.000%
 ```
 
-Thai labels with English symbols and units. One CSS file, no JavaScript.
+English labels with standard symbols and units. One CSS file, no JavaScript.
 
 ## File layout
 
 ```
-app.py                          Flask routes, form parsing, error handling
-bjt.py                          dataclasses, validation, primary calculation, region logic
-independent.py                  6x6 nodal solve, comparison result
-templates/index.html            form + results + warnings + comparison
-static/style.css                single stylesheet
+app/app.py                      Flask routes, form parsing, error handling
+app/bjt.py                      dataclasses, validation, primary calculation, region logic
+app/independent.py              6x6 nodal solve, comparison result
+app/templates/index.html        dashboard: inputs, SVG schematic, results
+app/static/style.css            single stylesheet
 tests/test_bjt.py               primary math, regions, validation
 tests/test_independent.py       nodal vs Thévenin agreement
 tests/test_routes.py            GET, valid POST, invalid POST, region messages
-requirements.txt                Flask, pytest
 README.md                       conflict resolved + run instructions
 docs/superpowers/specs/2026-11-10-bjt-ce-bias-design.md
 ```
@@ -160,12 +159,14 @@ docs/superpowers/specs/2026-11-10-bjt-ce-bias-design.md
 ## Decisions made
 
 - Repo-root layout; `electrical.py` untouched.
-- Resistors in ohms, voltages in volts, currents auto-scaled (µA/mA).
+- Resistors entered in Ω/kΩ/MΩ (converted to ohms internally), voltages in V/mV,
+  currents auto-scaled (µA/mA).
 - `VCE_SAT = 0.2 V` and near-saturation threshold `1.0 V` are constants.
 - Comparison tolerance 0.1%, active region only.
-- Default form values: `12, 47000, 10000, 4700, 1000, 150, 0.7`.
+- Default form values: VCC = 12 V, R1 = 100 kΩ, R2 = 22 kΩ, RC = 2.2 kΩ,
+  RE = 1.0 kΩ, β = 100, VBE = 0.70 V.
 
 ## Left to the builder
 
-Exact CSS, Thai copy for labels and messages, Gaussian elimination implementation
+Exact CSS, English copy for labels and messages, Gaussian elimination implementation
 details, and the specific numeric fixtures used in tests.

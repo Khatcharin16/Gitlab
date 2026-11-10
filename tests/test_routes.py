@@ -15,11 +15,12 @@ def client():
 
 
 def test_get_form(client):
-    """GET / should render the form."""
+    """GET / should render the dashboard form and worked example."""
     resp = client.get("/")
     assert resp.status_code == 200
-    assert b"BJT Common" in resp.data
+    assert b"BJT DC Bias" in resp.data
     assert b"Calculate" in resp.data
+    assert b"DC Bias Results" in resp.data
 
 
 def test_post_valid(client):

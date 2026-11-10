@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
+
 from app.bjt import primary_calc, compare_ic_vce, is_finite
 from app.independent import nodal_solve
 
@@ -11,163 +12,299 @@ app.config["SECRET_KEY"] = "eng29-lab-secret"
 
 
 # ---------------------------------------------------------------------------
-# Helper: format numbers with units, auto‑scale
+# Units
 # ---------------------------------------------------------------------------
-def fmt_cur(a: float) -> str:
-    """Current in mA if ≥ 1 mA, else µA."""
-    return f"{a*1e3:.2f} mA" if a >= 1e-3 else f"{a*1e6:.2f} µA"
+# Each input maps its display unit to a multiplier into SI base units
+# (volts for voltages, ohms for resistances, dimensionless for beta).
+UNIT_MAP: dict[str, dict[str, float]] = {
+    "vcc": {"V": 1.0, "mV": 1e-3},
+    "r1": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "r2": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "rc": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "re": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "beta": {"-": 1.0},
+    "vbe": {"V": 1.0, "mV": 1e-3},
+}
 
+# Values shown when the page is first opened (in the displayed units).
+DEFAULT_RAW: dict[str, str] = {
+    "vcc": "12.0",
+    "r1": "100",
+    "r2": "22",
+    "rc": "2.2",
+    "re": "1.0",
+    "beta": "100",
+    "vbe": "0.70",
+}
 
-def fmt_vol(v: float) -> str:
-    return f"{v:.3f} V"
+DEFAULT_UNITS: dict[str, str] = {
+    "vcc": "V",
+    "r1": "k",
+    "r2": "k",
+    "rc": "k",
+    "re": "k",
+    "beta": "-",
+    "vbe": "V",
+}
+
+# Used when a POST omits a unit field (e.g. the pytest client): treat the
+# number as already being in base units, so old-style requests keep working.
+FALLBACK_UNITS: dict[str, str] = {
+    "vcc": "V",
+    "r1": "ohm",
+    "r2": "ohm",
+    "rc": "ohm",
+    "re": "ohm",
+    "beta": "-",
+    "vbe": "V",
+}
 
 
 # ---------------------------------------------------------------------------
-# Route: GET /  — show the form
+# Formatting helpers
+# ---------------------------------------------------------------------------
+def fmt_current(a: float) -> str:
+    """Auto-scale a current to mA / µA / nA."""
+    if a >= 1e-3:
+        return f"{a * 1e3:.2f} mA"
+    if a >= 1e-6:
+        return f"{a * 1e6:.2f} µA"
+    return f"{a * 1e9:.2f} nA"
+
+
+def fmt_voltage(v: float, digits: int = 2) -> str:
+    return f"{v:.{digits}f} V"
+
+
+def fmt_resistor(v: float) -> str:
+    """Human-readable resistance: 100 kΩ, 2.2 kΩ, 1.0 kΩ, 470 Ω."""
+    if v >= 1e6:
+        x, unit = v / 1e6, "MΩ"
+    elif v >= 1e3:
+        x, unit = v / 1e3, "kΩ"
+    else:
+        x, unit = v, "Ω"
+    text = f"{x:.1f}" if x < 10 else f"{x:.0f}"
+    return f"{text} {unit}"
+
+
+# ---------------------------------------------------------------------------
+# Form defaults and parsing
+# ---------------------------------------------------------------------------
+def default_values() -> dict[str, float]:
+    """Default circuit in SI base units."""
+    return {
+        "vcc": 12.0,
+        "r1": 100e3,
+        "r2": 22e3,
+        "rc": 2.2e3,
+        "re": 1.0e3,
+        "beta": 100.0,
+        "vbe": 0.70,
+    }
+
+
+def default_form() -> dict[str, str]:
+    """Default form contents, including the *_unit keys."""
+    form = dict(DEFAULT_RAW)
+    form.update({f"{key}_unit": unit for key, unit in DEFAULT_UNITS.items()})
+    return form
+
+
+def parse_form(form) -> tuple[dict[str, float | None], dict[str, str]]:
+    """Parse a submitted form into SI values and display values.
+
+    Returns ``(values, display)`` where ``values`` holds floats (or ``None``
+    for unparseable fields) in SI units and ``display`` holds the raw strings
+    plus chosen units so the form can be re-rendered unchanged.
+    """
+    values: dict[str, float | None] = {}
+    display: dict[str, str] = {}
+
+    for key, units in UNIT_MAP.items():
+        raw = (form.get(key) or "").strip()
+        unit = form.get(f"{key}_unit", FALLBACK_UNITS[key])
+        if unit not in units:
+            unit = FALLBACK_UNITS[key]
+
+        display[key] = raw
+        display[f"{key}_unit"] = unit
+
+        try:
+            values[key] = float(raw) * units[unit]
+        except (TypeError, ValueError):
+            values[key] = None
+
+    return values, display
+
+
+def build_circuit(values: dict) -> dict[str, str]:
+    """Labels shown next to the schematic (falls back to defaults)."""
+    base = default_values()
+    v = {key: values[key] if values.get(key) is not None else base[key]
+         for key in base}
+    return {
+        "vcc": f"{v['vcc']:g} V",
+        "r1": fmt_resistor(v["r1"]),
+        "r2": fmt_resistor(v["r2"]),
+        "rc": fmt_resistor(v["rc"]),
+        "re": fmt_resistor(v["re"]),
+        "beta": f"{v['beta']:g}",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Result model
+# ---------------------------------------------------------------------------
+def build_result(values: dict) -> dict[str, str]:
+    """Run both calculations and build the template's result context."""
+    primary = primary_calc(
+        values["vcc"], values["r1"], values["r2"], values["rc"],
+        values["re"], values["beta"], values["vbe"],
+    )
+    ic_node, vce_node = nodal_solve(
+        values["vcc"], values["r1"], values["r2"], values["rc"],
+        values["re"], values["beta"], values["vbe"],
+    )
+    comparison = compare_ic_vce(primary.ic, primary.vce, ic_node, vce_node)
+
+    if primary.region == "cutoff":
+        status_class = "bad"
+        status_title = "Cutoff region"
+        status_text = (
+            "V<sub>BB</sub> ≤ V<sub>BE</sub> — no collector current flows."
+        )
+    elif primary.region == "saturation":
+        status_class = "bad"
+        status_title = "Saturation region"
+        status_text = (
+            "V<sub>CE</sub> is clamped near 0.2 V — transistor is fully on."
+        )
+    elif primary.warning:
+        status_class = "warn"
+        status_title = "Near saturation warning"
+        status_text = (
+            f"V<sub>CE</sub> = {primary.vce:.2f} V &lt; 1.0 V — check the design."
+        )
+    else:
+        status_class = "ok"
+        status_title = "Active region approximation OK"
+        status_text = (
+            f"V<sub>CE</sub> = {primary.vce:.2f} V &gt; 0.2 V "
+            "(transistor in active region)"
+        )
+
+    return {
+        "vb": fmt_voltage(primary.vb),
+        "ve": fmt_voltage(primary.ve),
+        "vc": fmt_voltage(primary.vc),
+        "vce": fmt_voltage(primary.vce),
+        "ib": fmt_current(primary.ib),
+        "ic": fmt_current(primary.ic),
+        "ie": fmt_current(primary.ie),
+        "vbe": fmt_voltage(primary.vbe),
+        "vbc": fmt_voltage(primary.vbc),
+        "region": primary.region,
+        "status_class": status_class,
+        "status_title": status_title,
+        "status_text": status_text,
+        "match": comparison["match"],
+        "ic_delta": comparison["ic_delta"],
+        "vce_delta": comparison["vce_delta"],
+        "show_check": primary.region == "active",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Routes
 # ---------------------------------------------------------------------------
 @app.get("/")
 def index():
-    """Render the empty form (or keep previously entered values)."""
+    """Show the dashboard with the default worked example."""
+    values = default_values()
     return render_template(
         "index.html",
-        result=None,
-        form_values=dict(vcc="12", r1="47000", r2="10000", rc="4700", re="1000", beta="150", vbe="0.7"),
+        result=build_result(values),
+        form_values=default_form(),
+        circuit=build_circuit(values),
         error_messages=[],
     )
 
 
-# ---------------------------------------------------------------------------
-# Route: POST /  — compute and show results
-# ---------------------------------------------------------------------------
 @app.post("/")
 def compute():
-    """Accept the form, compute both methods, render results page."""
-    # --- Pull & coerce form values ---
-    try:
-        vcc = float(request.form.get("vcc", ""))
-    except ValueError:
-        vcc = None
-    try:
-        r1 = float(request.form.get("r1", ""))
-    except ValueError:
-        r1 = None
-    try:
-        r2 = float(request.form.get("r2", ""))
-    except ValueError:
-        r2 = None
-    try:
-        rc = float(request.form.get("rc", ""))
-    except ValueError:
-        rc = None
-    try:
-        re = float(request.form.get("re", ""))
-    except ValueError:
-        re = None
-    try:
-        beta = float(request.form.get("beta", ""))
-    except ValueError:
-        beta = None
-    try:
-        vbe = float(request.form.get("vbe", ""))
-    except ValueError:
-        vbe = None
+    """Accept the form, compute both methods, render the dashboard."""
+    values, display = parse_form(request.form)
+    circuit = build_circuit(values)
 
-    # --- Defaults when fields are empty or bad ---
-    if vcc is None:
-        vcc = 12.0
-    if r1 is None:
-        r1 = 47000.0
-    if r2 is None:
-        r2 = 10000.0
-    if rc is None:
-        rc = 4700.0
-    if re is None:
-        re = 1000.0
-    if beta is None:
-        beta = 150.0
-    if vbe is None:
-        vbe = 0.7
-
-    # --- Preserve entered values for the template ---
-    # (override only the ones the user actually typed)
-    form_values = dict(vcc=vcc, r1=r1, r2=r2, rc=rc, re=re, beta=beta, vbe=vbe)
-
-    # --- Validation ---
-    ok, v_msgs = validate_form(vcc, r1, r2, rc, re, beta, vbe)
-
+    ok, messages = validate_form(
+        values["vcc"], values["r1"], values["r2"], values["rc"],
+        values["re"], values["beta"], values["vbe"],
+    )
     if not ok:
-        # Re-render form with error messages and previously entered values
         return render_template(
             "index.html",
             result=None,
-            form_values=form_values,
-            error_messages=v_msgs,
+            form_values=display,
+            circuit=circuit,
+            error_messages=messages,
         )
-
-    # --- Primary (Thévenin) calculation ---
-    primary = primary_calc(vcc, r1, r2, rc, re, beta, vbe)
-
-    # --- Independent nodal solve (active region only) ---
-    ic_node, vce_node = nodal_solve(vcc, r1, r2, rc, re, beta, vbe)
-
-    # --- Comparison ---
-    comparison = compare_ic_vce(primary.ic, primary.vce, ic_node, vce_node)
-
-    # --- Build template context ---
-    # Use comparison dict for the independent-check table;
-    # its keys (ic_th, ic_node, ic_delta, vce_th, vce_node, vce_delta, match)
-    # are the names the template expects.
-    comparison = comparison  # keep for reference
-
-    result = dict(
-        ic_th=fmt_cur(primary.ic),
-        ic_node=fmt_cur(ic_node),
-        vce_th=fmt_vol(primary.vce),
-        vce_node=fmt_vol(vce_node),
-        region=primary.region,
-        warning=primary.warning,
-        ib=f"{primary.ib*1e6:.2f} µA",
-        ic=fmt_cur(primary.ic),
-        ie=f"{primary.ie*1e3:.2f} mA",
-        vbe=fmt_vol(primary.vbe),
-        vce=fmt_vol(primary.vce),
-        ve=f"{primary.ve*1e3:.2f} mA" if primary.ve >= 1e-3 else f"{primary.ve*1e6:.2f} µA",
-        vb=f"{primary.vb:.2f} V",
-        vc=f"{primary.vc:.2f} V",
-        vbc=f"{primary.vbc:.2f} V",
-    )
-    # Overlay comparison results (will overwrite keys above if overlap,
-    # but they don't since comparison has ic_delta/vce_delta/match only)
-    result.update(comparison)
 
     return render_template(
         "index.html",
-        result=result,
-        form_values=form_values,
-        error_messages=None,
+        result=build_result(values),
+        form_values=display,
+        circuit=circuit,
+        error_messages=[],
     )
 
 
 # ---------------------------------------------------------------------------
 # Validation helper
 # ---------------------------------------------------------------------------
-def validate_form(vcc: float, r1: float, r2: float, rc: float, re: float,
-                  beta: float, vbe: float) -> tuple[bool, list[str]]:
+def _valid_number(value) -> bool:
+    return value is not None and is_finite(value)
+
+
+def validate_form(vcc, r1, r2, rc, re, beta, vbe) -> tuple[bool, list[str]]:
+    """Validate SI values. Returns (ok, messages)."""
     msgs: list[str] = []
-    if not is_finite(vcc) or vcc <= 0:
+
+    if not _valid_number(vcc):
+        msgs.append("VCC must be a valid number")
+    elif vcc <= 0:
         msgs.append("VCC must be greater than 0 V")
-    if not is_finite(r1) or r1 <= 0:
+
+    if not _valid_number(r1):
+        msgs.append("R1 must be a valid number")
+    elif r1 <= 0:
         msgs.append("R1 must be greater than 0 ohm")
-    if not is_finite(r2) or r2 <= 0:
+
+    if not _valid_number(r2):
+        msgs.append("R2 must be a valid number")
+    elif r2 <= 0:
         msgs.append("R2 must be greater than 0 ohm")
-    if not is_finite(rc) or rc <= 0:
+
+    if not _valid_number(rc):
+        msgs.append("RC must be a valid number")
+    elif rc <= 0:
         msgs.append("RC must be greater than 0 ohm")
-    if not is_finite(re) or re < 0:
+
+    if not _valid_number(re):
+        msgs.append("RE must be a valid number")
+    elif re < 0:
         msgs.append("RE must be greater than or equal to 0 ohm")
-    if not is_finite(beta) or beta < 1 or beta > 2000:
+
+    if not _valid_number(beta):
+        msgs.append("beta must be a valid number")
+    elif beta < 1 or beta > 2000:
         msgs.append("beta must be between 1 and 2000")
-    if not is_finite(vbe) or vbe < 0.4 or vbe > 1.0:
+
+    if not _valid_number(vbe):
+        msgs.append("VBE must be a valid number")
+    elif vbe < 0.4 or vbe > 1.0:
         msgs.append("VBE must be 0.4-1.0 V")
+
     return len(msgs) == 0, msgs
 
 
