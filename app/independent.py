@@ -42,9 +42,9 @@ def nodal_solve(vcc: float, r1: float, r2: float, rc: float, re: float,
     # Matrix A (6x6) — each row has 6 coefficients + 1 RHS
     A = [
         [ 1.0, -1.0,  0.0,  0.0,  0.0,  0.0],   # eq1: VB - VE = VBE
-        [ 0.0,  0.0,  0.0,  1.0, -beta,  0.0],   # eq2: IC - beta*IB = 0
+        [ 0.0,  0.0,  0.0, -beta,  1.0,  0.0],   # eq2: IC - beta*IB = 0
         [ 0.0,  0.0,  0.0, -1.0, -1.0,  1.0],   # eq3: IE - IB - IC = 0
-        [-g1,  0.0,  0.0, -1.0,  0.0,  0.0],   # eq4: -g1*VB - IB = -VCC/R1
+        [-(g1 + g2), 0.0, 0.0, -1.0, 0.0, 0.0],  # eq4: KCL at base (R1, R2)
         [ 0.0,  0.0, -gc,  0.0, -1.0,  0.0],   # eq5: -gc*VC - IC = -VCC/RC
         [ 0.0,  ge,  0.0,  0.0,  0.0, -1.0],   # eq6: ge*VE - IE = 0
     ]
@@ -58,6 +58,11 @@ def nodal_solve(vcc: float, r1: float, r2: float, rc: float, re: float,
         -vcc / rc,              # eq5 RHS
         0.0,                     # eq6 RHS (always 0)
     ]
+
+    # RE = 0 shorts the emitter to ground: VE = 0 becomes the constraint.
+    if re == 0:
+        A[5] = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+        b[5] = 0.0
 
     # ---- Gaussian elimination with partial pivoting ----
     n = 6

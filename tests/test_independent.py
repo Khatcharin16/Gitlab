@@ -25,6 +25,17 @@ def test_nodal_cutoff_like():
     assert vce > 0
 
 
+def test_nodal_matches_primary():
+    """Independent solve must agree with the Thevenin result within 0.1%."""
+    from app.bjt import primary_calc
+
+    p = primary_calc(12.0, 47000.0, 10000.0, 4700.0, 1000.0, 150.0, 0.7)
+    ic, vce = nodal_solve(12.0, 47000.0, 10000.0, 4700.0, 1000.0, 150.0, 0.7)
+
+    assert abs(ic - p.ic) / p.ic < 1e-3
+    assert abs(vce - p.vce) / p.vce < 1e-3
+
+
 def test_nodal_re_zero():
     """RE = 0 → emitter is effectively shorted; VE should be 0."""
     ic, vce = nodal_solve(5.0, 1000, 200, 100, 0, 50, 0.7)
