@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Lab 02: BJT DC Bias Web App — ENG29 2121</title>
+  <title>Lab 03: BJT DC Bias Web App — ENG29 2121</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -23,8 +23,8 @@
                  M8 23h7M8 32h7M8 41h7M49 23h7M49 32h7M49 41h7"/>
       </svg>
       <div>
-        <h1>Lab 02: BJT DC Bias Web App</h1>
-        <p class="subtitle">ENG29 2121 – Common Emitter (Voltage Divider Bias)</p>
+        <h1>Lab 03: BJT DC Bias Web App</h1>
+        <p class="subtitle">ENG29 2121 – Common Emitter (Divider · Fixed · Emitter Bias)</p>
       </div>
     </div>
 
@@ -64,7 +64,22 @@
         <h2>Input Parameters</h2>
       </div>
 
+      <form class="mode-form" method="get" action="/">
+        <label for="mode">Bias mode</label>
+        <div class="mode-controls">
+          <select id="mode" name="mode">
+            <option value="divider" {% if mode == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
+            <option value="fixed" {% if mode == 'fixed' %}selected{% endif %}>Fixed Bias</option>
+            <option value="emitter" {% if mode == 'emitter' %}selected{% endif %}>Emitter Bias</option>
+          </select>
+          <button class="btn-mode" type="submit">โหลดฟอร์ม</button>
+        </div>
+        <p class="mode-hint">Current mode: <strong>{{ mode_label }}</strong>.
+          Switching modes reloads the form on the server (no JavaScript).</p>
+      </form>
+
       <form method="post" action="/">
+        <input type="hidden" name="mode" value="{{ mode }}">
         <div class="param-row">
           <label for="vcc"><span class="sym">V<sub>CC</sub></span>
             <span class="desc">(Supply Voltage)</span></label>
@@ -76,6 +91,7 @@
           </select>
         </div>
 
+        {% if mode == 'divider' %}
         <div class="param-row">
           <label for="r1"><span class="sym">R<sub>1</sub></span>
             <span class="desc">(Upper Divider)</span></label>
@@ -99,6 +115,19 @@
             <option value="M" {% if form_values.r2_unit == 'M' %}selected{% endif %}>MΩ</option>
           </select>
         </div>
+        {% else %}
+        <div class="param-row">
+          <label for="rb"><span class="sym">R<sub>B</sub></span>
+            <span class="desc">(Base Resistor)</span></label>
+          <input id="rb" type="number" step="any" name="rb"
+                 value="{{ form_values.rb }}" required>
+          <select name="rb_unit" aria-label="RB unit">
+            <option value="ohm" {% if form_values.rb_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.rb_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.rb_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+        {% endif %}
 
         <div class="param-row">
           <label for="rc"><span class="sym">R<sub>C</sub></span>
@@ -112,6 +141,7 @@
           </select>
         </div>
 
+        {% if mode != 'fixed' %}
         <div class="param-row">
           <label for="re"><span class="sym">R<sub>E</sub></span>
             <span class="desc">(Emitter Resistor)</span></label>
@@ -123,6 +153,7 @@
             <option value="M" {% if form_values.re_unit == 'M' %}selected{% endif %}>MΩ</option>
           </select>
         </div>
+        {% endif %}
 
         <div class="param-row">
           <label for="beta"><span class="sym">β</span>
@@ -157,7 +188,7 @@
 
       {% if error_messages %}
       <div class="error-box" role="alert">
-        <strong>Validation errors:</strong>
+        <strong>Validation errors — {{ mode_label }}:</strong>
         <ul>
         {% for msg in error_messages %}
           <li>{{ msg }}</li>
@@ -186,7 +217,7 @@
 
       <div class="circuit-wrap">
         <svg class="schematic" viewBox="0 0 460 500" role="img"
-             aria-label="NPN common-emitter amplifier with voltage-divider bias">
+             aria-label="NPN common-emitter amplifier with {{ mode_label }}">
           <defs>
             <marker id="emitter-arrow" viewBox="0 0 10 10" refX="8" refY="5"
                     markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -203,41 +234,60 @@
             <line x1="150" y1="40" x2="300" y2="40"/>
             <line x1="300" y1="40" x2="300" y2="78"/>
             <line x1="300" y1="142" x2="300" y2="270"/>
-            <!-- R1 branch -->
+            <!-- Bias resistor branch -->
             <line x1="150" y1="40" x2="150" y2="108"/>
+            {% if mode == 'divider' %}
             <line x1="150" y1="172" x2="150" y2="350"/>
+            {% else %}
+            <line x1="150" y1="172" x2="150" y2="290"/>
+            {% endif %}
             <!-- Base lead -->
             <line x1="150" y1="290" x2="262" y2="290"/>
-            <!-- R2 / RE lower leads -->
+            {% if mode == 'divider' %}
+            <!-- R2 lower lead and ground -->
             <line x1="150" y1="414" x2="150" y2="452"/>
+            {% endif %}
+            <!-- Emitter leg -->
+            {% if mode == 'fixed' %}
+            <line x1="300" y1="312" x2="300" y2="452"/>
+            {% else %}
             <line x1="300" y1="330" x2="300" y2="350"/>
             <line x1="300" y1="414" x2="300" y2="452"/>
+            <line x1="300" y1="312" x2="300" y2="330"/>
+            {% endif %}
             <!-- Transistor terminals -->
             <line x1="300" y1="270" x2="262" y2="282"/>
             <line x1="262" y1="298" x2="300" y2="312"
                   marker-end="url(#emitter-arrow)"/>
-            <line x1="300" y1="312" x2="300" y2="330"/>
           </g>
 
           <!-- Resistors -->
           <polyline class="comp" points="300,78 288,86 312,102 288,118 312,134 300,142"/>
           <polyline class="comp" points="150,108 138,116 162,132 138,148 162,164 150,172"/>
+          {% if mode == 'divider' %}
           <polyline class="comp" points="150,350 138,358 162,374 138,390 162,406 150,414"/>
+          {% endif %}
+          {% if mode != 'fixed' %}
           <polyline class="comp" points="300,350 288,358 312,374 288,390 312,406 300,414"/>
+          {% endif %}
 
           <!-- Transistor base bar -->
           <line class="bjt-bar" x1="262" y1="270" x2="262" y2="310"/>
 
           <!-- Junctions -->
           <circle class="node" cx="300" cy="40" r="4.5"/>
+          {% if mode == 'divider' %}
           <circle class="node" cx="150" cy="290" r="4.5"/>
+          {% endif %}
 
           <!-- Grounds -->
+          {% if mode == 'divider' %}
           <g class="gnd">
             <line x1="130" y1="452" x2="170" y2="452"/>
             <line x1="138" y1="460" x2="162" y2="460"/>
             <line x1="146" y1="468" x2="154" y2="468"/>
           </g>
+          {% endif %}
           <g class="gnd">
             <line x1="280" y1="452" x2="320" y2="452"/>
             <line x1="288" y1="460" x2="312" y2="460"/>
@@ -254,6 +304,7 @@
           </text>
           <text class="val" x="320" y="128">{{ circuit.rc }}</text>
 
+          {% if mode == 'divider' %}
           <text class="lbl" x="130" y="128" text-anchor="end">
             R<tspan class="sub" dy="5">1</tspan>
           </text>
@@ -263,11 +314,19 @@
             R<tspan class="sub" dy="5">2</tspan>
           </text>
           <text class="val" x="130" y="396" text-anchor="end">{{ circuit.r2 }}</text>
+          {% else %}
+          <text class="lbl" x="130" y="128" text-anchor="end">
+            R<tspan class="sub" dy="5">B</tspan>
+          </text>
+          <text class="val" x="130" y="152" text-anchor="end">{{ circuit.rb }}</text>
+          {% endif %}
 
+          {% if mode != 'fixed' %}
           <text class="lbl" x="320" y="372">
             R<tspan class="sub" dy="5">E</tspan>
           </text>
           <text class="val" x="320" y="396">{{ circuit.re }}</text>
+          {% endif %}
 
           <text class="lbl" x="346" y="284">
             Q<tspan class="sub" dy="5">1</tspan>
@@ -291,6 +350,8 @@
         </span>
         <h2>DC Bias Results</h2>
       </div>
+
+      <p class="mode-badge">Mode: <strong>{{ mode_label }}</strong></p>
 
       {% if result %}
       <table class="results-table">
@@ -350,7 +411,7 @@
   </main>
 
   <!-- ====================================================================
-       Week 2 Goal
+       Lab 03 Goal
        ==================================================================== -->
   <footer class="goal">
     <div class="goal-title">
@@ -360,13 +421,14 @@
         <circle cx="12" cy="12" r="5"/>
         <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
       </svg>
-      Week 2 Goal
+      Lab 03 Goal
     </div>
-    <p><strong>Rough target for this lab:</strong> Build a Flask web app that takes
-      the circuit parameters, computes the BJT DC bias
+    <p><strong>Target for this lab:</strong> Extend the Lab 02 Flask calculator so
+      the same common-emitter operating point
       (<em>V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
-      I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub></em>) for a common-emitter
-      amplifier with voltage-divider bias, and displays the results.</p>
+      I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub></em>) can be solved for
+      <strong>Voltage Divider</strong>, <strong>Fixed</strong>, and
+      <strong>Emitter</strong> bias. The Lab 02 divider result must stay unchanged.</p>
   </footer>
 
   <!-- Repository URL, easy to find -->

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from flask import Flask, render_template, request
 
-from app.bjt import primary_calc, compare_ic_vce, is_finite
+from app.bjt import (
+    BIAS_MODES,
+    MODE_LABELS,
+    compare_ic_vce,
+    is_finite,
+    solve_bias,
+    validate_bias,
+)
 from app.independent import nodal_solve
 
 app = Flask(__name__)
@@ -20,6 +27,7 @@ UNIT_MAP: dict[str, dict[str, float]] = {
     "vcc": {"V": 1.0, "mV": 1e-3},
     "r1": {"ohm": 1.0, "k": 1e3, "M": 1e6},
     "r2": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "rb": {"ohm": 1.0, "k": 1e3, "M": 1e6},
     "rc": {"ohm": 1.0, "k": 1e3, "M": 1e6},
     "re": {"ohm": 1.0, "k": 1e3, "M": 1e6},
     "beta": {"-": 1.0},
@@ -31,6 +39,7 @@ DEFAULT_RAW: dict[str, str] = {
     "vcc": "12.0",
     "r1": "100",
     "r2": "22",
+    "rb": "1",
     "rc": "2.2",
     "re": "1.0",
     "beta": "100",
@@ -41,6 +50,7 @@ DEFAULT_UNITS: dict[str, str] = {
     "vcc": "V",
     "r1": "k",
     "r2": "k",
+    "rb": "M",
     "rc": "k",
     "re": "k",
     "beta": "-",
@@ -53,6 +63,7 @@ FALLBACK_UNITS: dict[str, str] = {
     "vcc": "V",
     "r1": "ohm",
     "r2": "ohm",
+    "rb": "ohm",
     "rc": "ohm",
     "re": "ohm",
     "beta": "-",
@@ -64,12 +75,20 @@ FALLBACK_UNITS: dict[str, str] = {
 # Formatting helpers
 # ---------------------------------------------------------------------------
 def fmt_current(a: float) -> str:
-    """Auto-scale a current to mA / µA / nA."""
-    if a >= 1e-3:
+    """Auto-scale a current to mA / µA / nA (sign preserved)."""
+    magnitude = abs(a)
+    if magnitude >= 1e-3:
         return f"{a * 1e3:.2f} mA"
-    if a >= 1e-6:
+    if magnitude >= 1e-6:
         return f"{a * 1e6:.2f} µA"
     return f"{a * 1e9:.2f} nA"
+
+
+def fmt_collector_current(a: float) -> str:
+    """Show IC / IE in mA for the usual bias range, keeping small values clear."""
+    if abs(a) >= 1e-4:
+        return f"{a * 1e3:.2f} mA"
+    return fmt_current(a)
 
 
 def fmt_voltage(v: float, digits: int = 2) -> str:
@@ -91,24 +110,40 @@ def fmt_resistor(v: float) -> str:
 # ---------------------------------------------------------------------------
 # Form defaults and parsing
 # ---------------------------------------------------------------------------
-def default_values() -> dict[str, float]:
-    """Default circuit in SI base units."""
-    return {
+def default_values(mode: str = "divider") -> dict[str, float]:
+    """Default circuit in SI base units for the selected mode."""
+    values = {
         "vcc": 12.0,
         "r1": 100e3,
         "r2": 22e3,
+        "rb": 1.0e6,
         "rc": 2.2e3,
-        "re": 1.0e3,
+        "re": 0.0 if mode == "fixed" else 1.0e3,
         "beta": 100.0,
         "vbe": 0.70,
     }
+    return values
 
 
-def default_form() -> dict[str, str]:
+def default_form(mode: str = "divider") -> dict[str, str]:
     """Default form contents, including the *_unit keys."""
     form = dict(DEFAULT_RAW)
+    if mode == "divider":
+        form["re"] = "1.0"
     form.update({f"{key}_unit": unit for key, unit in DEFAULT_UNITS.items()})
     return form
+
+
+def parse_mode(raw: str | None, default: str = "divider") -> str:
+    """Return the requested mode, or ``default`` when it is missing."""
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip().lower()
+
+
+def mode_label(mode: str) -> str:
+    """Human-readable mode name, including unknown values."""
+    return MODE_LABELS.get(mode, f"Unknown mode '{mode}'")
 
 
 def parse_form(form) -> tuple[dict[str, float | None], dict[str, str]]:
@@ -138,125 +173,135 @@ def parse_form(form) -> tuple[dict[str, float | None], dict[str, str]]:
     return values, display
 
 
-def build_circuit(values: dict) -> dict[str, str]:
+def build_circuit(mode: str, values: dict) -> dict[str, str]:
     """Labels shown next to the schematic (falls back to defaults)."""
-    base = default_values()
+    base = default_values(mode)
     v = {key: values[key] if values.get(key) is not None else base[key]
          for key in base}
-    return {
+    circuit = {
         "vcc": f"{v['vcc']:g} V",
-        "r1": fmt_resistor(v["r1"]),
-        "r2": fmt_resistor(v["r2"]),
         "rc": fmt_resistor(v["rc"]),
-        "re": fmt_resistor(v["re"]),
         "beta": f"{v['beta']:g}",
+        "mode_label": mode_label(mode),
     }
+    if mode == "divider":
+        circuit["r1"] = fmt_resistor(v["r1"])
+        circuit["r2"] = fmt_resistor(v["r2"])
+    if mode in ("fixed", "emitter"):
+        circuit["rb"] = fmt_resistor(v["rb"])
+    if mode in ("divider", "emitter"):
+        circuit["re"] = fmt_resistor(v["re"])
+    return circuit
 
 
 # ---------------------------------------------------------------------------
 # Result model
 # ---------------------------------------------------------------------------
-def build_result(values: dict) -> dict[str, str]:
-    """Run both calculations and build the template's result context."""
-    primary = primary_calc(
-        values["vcc"], values["r1"], values["r2"], values["rc"],
-        values["re"], values["beta"], values["vbe"],
-    )
-    ic_node, vce_node = nodal_solve(
-        values["vcc"], values["r1"], values["r2"], values["rc"],
-        values["re"], values["beta"], values["vbe"],
-    )
-    comparison = compare_ic_vce(primary.ic, primary.vce, ic_node, vce_node)
+def build_result(mode: str, values: dict) -> dict[str, str]:
+    """Run the selected model and build the template's result context."""
+    op = solve_bias(mode, values)
 
-    if primary.region == "cutoff":
-        status_class = "bad"
-        status_title = "Cutoff region"
-        status_text = (
-            "V<sub>BB</sub> ≤ V<sub>BE</sub> — no collector current flows."
+    comparison = None
+    if mode == "divider" and op.region == "active":
+        ic_node, vce_node = nodal_solve(
+            values["vcc"], values["r1"], values["r2"], values["rc"],
+            values["re"], values["beta"], values["vbe"],
         )
-    elif primary.region == "saturation":
-        status_class = "bad"
-        status_title = "Saturation region"
-        status_text = (
-            "V<sub>CE</sub> is clamped near 0.2 V — transistor is fully on."
-        )
-    elif primary.warning:
+        comparison = compare_ic_vce(op.ic, op.vce, ic_node, vce_node)
+
+    if op.region == "cutoff":
         status_class = "warn"
-        status_title = "Near saturation warning"
-        status_text = (
-            f"V<sub>CE</sub> = {primary.vce:.2f} V &lt; 1.0 V — check the design."
-        )
+        status_title = "Cutoff model warning"
+        status_text = op.warning or "The transistor would be cut off."
+    elif op.region == "saturation":
+        status_class = "warn"
+        status_title = "Saturation model warning"
+        status_text = op.warning or "The transistor would be saturated."
     else:
         status_class = "ok"
         status_title = "Active region approximation OK"
         status_text = (
-            f"V<sub>CE</sub> = {primary.vce:.2f} V &gt; 0.2 V "
+            f"V<sub>CE</sub> = {op.vce:.2f} V &gt; 0.2 V "
             "(transistor in active region)"
         )
 
-    return {
-        "vb": fmt_voltage(primary.vb),
-        "ve": fmt_voltage(primary.ve),
-        "vc": fmt_voltage(primary.vc),
-        "vce": fmt_voltage(primary.vce),
-        "ib": fmt_current(primary.ib),
-        "ic": fmt_current(primary.ic),
-        "ie": fmt_current(primary.ie),
-        "vbe": fmt_voltage(primary.vbe),
-        "vbc": fmt_voltage(primary.vbc),
-        "region": primary.region,
+    result = {
+        "vb": fmt_voltage(op.vb),
+        "ve": fmt_voltage(op.ve),
+        "vc": fmt_voltage(op.vc),
+        "vce": fmt_voltage(op.vce),
+        "ib": fmt_current(op.ib),
+        "ic": fmt_collector_current(op.ic),
+        "ie": fmt_collector_current(op.ie),
+        "vbe": fmt_voltage(op.vbe),
+        "vbc": fmt_voltage(op.vbc),
+        "region": op.region,
+        "mode": mode,
+        "mode_label": mode_label(mode),
         "status_class": status_class,
         "status_title": status_title,
         "status_text": status_text,
-        "match": comparison["match"],
-        "ic_delta": comparison["ic_delta"],
-        "vce_delta": comparison["vce_delta"],
-        "show_check": primary.region == "active",
+        "show_check": comparison is not None,
     }
+    if comparison is not None:
+        result.update({
+            "match": comparison["match"],
+            "ic_delta": comparison["ic_delta"],
+            "vce_delta": comparison["vce_delta"],
+        })
+    return result
 
 
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-@app.get("/")
-def index():
-    """Show the dashboard with the default worked example."""
-    values = default_values()
+def render_page(mode: str, form_values: dict, values: dict,
+                result: dict | None, error_messages: list[str],
+                status: int = 200):
+    """Render the dashboard with mode-aware labels."""
     return render_template(
         "index.html",
-        result=build_result(values),
-        form_values=default_form(),
-        circuit=build_circuit(values),
-        error_messages=[],
-    )
+        mode=mode,
+        mode_label=mode_label(mode),
+        result=result,
+        form_values=form_values,
+        circuit=build_circuit(mode, values),
+        error_messages=error_messages,
+    ), status
+
+
+@app.get("/")
+def index():
+    """Show the default worked example for the requested mode."""
+    mode = parse_mode(request.args.get("mode"))
+    values = default_values(mode)
+    if mode not in BIAS_MODES:
+        message = (
+            f"Unknown bias mode '{mode}'. Use divider, fixed, or emitter."
+        )
+        return render_page(mode, default_form("divider"), values, None,
+                           [message], 400)
+    return render_page(mode, default_form(mode), values,
+                       build_result(mode, values), [])
 
 
 @app.post("/")
 def compute():
-    """Accept the form, compute both methods, render the dashboard."""
+    """Accept the form, compute the selected model, render the dashboard."""
+    mode = parse_mode(request.form.get("mode"))
     values, display = parse_form(request.form)
-    circuit = build_circuit(values)
 
-    ok, messages = validate_form(
-        values["vcc"], values["r1"], values["r2"], values["rc"],
-        values["re"], values["beta"], values["vbe"],
-    )
-    if not ok:
-        return render_template(
-            "index.html",
-            result=None,
-            form_values=display,
-            circuit=circuit,
-            error_messages=messages,
+    if mode not in BIAS_MODES:
+        message = (
+            f"Unknown bias mode '{mode}'. Use divider, fixed, or emitter."
         )
+        return render_page(mode, display, values, None, [message], 400)
 
-    return render_template(
-        "index.html",
-        result=build_result(values),
-        form_values=display,
-        circuit=circuit,
-        error_messages=[],
-    )
+    ok, messages = validate_bias(mode, values)
+    if not ok:
+        return render_page(mode, display, values, None, messages)
+
+    return render_page(mode, display, values, build_result(mode, values), [])
 
 
 # ---------------------------------------------------------------------------
