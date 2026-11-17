@@ -1,7 +1,7 @@
 # Lab 03 — Browser Acceptance (A1–A5)
 
 Date: 2026-11-17  
-App: <http://127.0.0.1:5000> (Flask development server, Python 3.14.2)  
+App: <http://127.0.0.1:5000> (Flask development server, Python 3.10.11)  
 Method: **OpenCode built-in Browser** (navigate, snapshot, click mode tab, fill, click)  
 Playwright MCP: **NOT RUN** — it is not configured in this repository. The lab
 sheet allows OpenCode Browser or manual checking as the fallback.
