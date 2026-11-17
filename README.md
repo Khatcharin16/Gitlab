@@ -5,7 +5,8 @@ Lab 03 extends the Lab 02 voltage-divider calculator with **Fixed Bias** and
 **Emitter Bias** while keeping the original Divider result unchanged.
 
 - Repository: <https://github.com/Khatcharin16/Gitlab>
-- Lab 03 implementation commit: `0bf0ba5df837b04a4f6f9e0e2b8959eaca2430e4`
+- Lab 03 commits: `96857921949ed7b664054d0fc906f2dd27dcab76` (tabbed mode UI),
+  `0bf0ba5df837b04a4f6f9e0e2b8959eaca2430e4` (Fixed + Emitter modes)
 - Browser acceptance evidence: [`docs/validation.md`](docs/validation.md)
 
 ## Bias modes
