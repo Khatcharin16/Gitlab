@@ -43,6 +43,61 @@ The form also supports Ω / kΩ / MΩ and V / mV units.
 - Divider mode keeps the Lab 02 Thévenin result and the independent nodal
   cross-check. Fixed and Emitter modes do not run the divider-only nodal check.
 
+## AI assistance and verification
+
+AI (OpenCode) helped with the Lab 03 additions:
+
+- drafting the Fixed and Emitter bias equations and the `solve_bias()` dispatch,
+- the server-side mode tabs and the mode-aware form/schematic,
+- the unit-aware form parsing (Ω/kΩ/MΩ, V/mV),
+- the pytest scaffolding and the A1–A5 acceptance notes.
+
+The student's verification:
+
+- recomputed A1–A4 by hand from the base-loop equations (see below),
+- confirmed Divider still returns the Lab 02 values
+  (IC = 1.229858 mA, VCE = 8.052155 V),
+- ran the browser cases A1–A5 and recorded the evidence in
+  [`docs/validation.md`](docs/validation.md) and [`docs/evidence/`](docs/evidence/),
+- checked invalid inputs (A5), per-mode validation, unknown mode, and
+  no stale results,
+- reviewed `git diff` and `git diff --staged` before committing.
+
+Code locations:
+
+- **Mode selection:** `app/bjt.py` — `solve_bias()` dispatches to
+  `divider_bias()`, `fixed_bias()`, and `emitter_bias()`; `BIAS_MODES`
+  lists the allowed modes. `app/app.py` — `parse_mode()` reads the mode
+  from the query string or form.
+- **Unit conversion:** `app/app.py` — `UNIT_MAP` defines the multipliers
+  and `parse_form()` applies them
+  (`values[key] = float(raw) * units[unit]`).
+
+### Independent reference for the new modes
+
+Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
+
+Fixed bias (A2, RB = 1 MΩ):
+
+```text
+IB  = (VCC − VBE) / RB = (12 − 0.7) V / 1,000,000 Ω = 11.30 µA
+IC  = β · IB = 100 × 11.30 µA = 1.130 mA
+VCE = VCC − IC · RC = 12 V − (1.130 mA × 2.2 kΩ) = 9.514 V
+VE  = 0 V, VB = VBE = 0.70 V
+```
+
+Emitter bias (A3, RB = 1 MΩ, RE = 1 kΩ):
+
+```text
+IB  = (VCC − VBE) / [RB + (β + 1)RE]
+    = (12 − 0.7) V / [1,000,000 + 101 × 1,000] Ω = 10.263 µA
+IC  = β · IB = 1.0263 mA
+IE  = (β + 1) · IB = 1.0366 mA
+VE  = IE · RE = 1.0366 V
+VC  = VCC − IC · RC = 9.742 V
+VCE = VC − VE = 8.705 V
+```
+
 ## Run the app
 
 From the repository root, using Python 3.10+:
