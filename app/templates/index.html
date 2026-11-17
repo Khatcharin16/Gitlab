@@ -64,19 +64,22 @@
         <h2>Input Parameters</h2>
       </div>
 
-      <form class="mode-form" method="get" action="/">
-        <label for="mode">Bias mode</label>
-        <div class="mode-controls">
-          <select id="mode" name="mode">
-            <option value="divider" {% if mode == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
-            <option value="fixed" {% if mode == 'fixed' %}selected{% endif %}>Fixed Bias</option>
-            <option value="emitter" {% if mode == 'emitter' %}selected{% endif %}>Emitter Bias</option>
-          </select>
-          <button class="btn-mode" type="submit">โหลดฟอร์ม</button>
-        </div>
-        <p class="mode-hint">Current mode: <strong>{{ mode_label }}</strong>.
-          Switching modes reloads the form on the server (no JavaScript).</p>
-      </form>
+      <div class="mode-form">
+        <span class="mode-form-label">Bias mode</span>
+        <nav class="mode-tabs" aria-label="Bias mode">
+          <a class="mode-tab{% if mode == 'divider' %} active{% endif %}"
+             href="/?mode=divider"
+             {% if mode == 'divider' %}aria-current="page"{% endif %}>Voltage Divider</a>
+          <a class="mode-tab{% if mode == 'fixed' %} active{% endif %}"
+             href="/?mode=fixed"
+             {% if mode == 'fixed' %}aria-current="page"{% endif %}>Fixed</a>
+          <a class="mode-tab{% if mode == 'emitter' %} active{% endif %}"
+             href="/?mode=emitter"
+             {% if mode == 'emitter' %}aria-current="page"{% endif %}>Emitter</a>
+        </nav>
+        <p class="mode-hint">กำลังดู: <strong>{{ mode_label }}</strong>.
+          เลือกโหมดแล้วฟอร์มจะเปลี่ยนทันทีจากเซิร์ฟเวอร์ (ไม่ใช้ JavaScript).</p>
+      </div>
 
       <form method="post" action="/">
         <input type="hidden" name="mode" value="{{ mode }}">

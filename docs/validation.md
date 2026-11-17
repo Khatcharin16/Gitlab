@@ -2,7 +2,7 @@
 
 Date: 2026-11-17  
 App: <http://127.0.0.1:5000> (Flask development server, Python 3.14.2)  
-Method: **OpenCode built-in Browser** (navigate, snapshot, select, fill, click)  
+Method: **OpenCode built-in Browser** (navigate, snapshot, click mode tab, fill, click)  
 Playwright MCP: **NOT RUN** — it is not configured in this repository. The lab
 sheet allows OpenCode Browser or manual checking as the fallback.
 
@@ -45,3 +45,6 @@ text after submitting the form.
   solver.
 - A5 is checked in the browser with the visible Fixed form; the required RB
   field stays required in HTML and the server also rejects RB ≤ 0.
+- Mode switching uses three server-side tabs (Voltage Divider / Fixed /
+  Emitter). Clicking a tab reloads the form immediately; there is no separate
+  “load form” button and no JavaScript.

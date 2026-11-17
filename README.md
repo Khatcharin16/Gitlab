@@ -28,8 +28,9 @@ The form also supports Ω / kΩ / MΩ and V / mV units.
 
 ## Behaviour
 
-- The mode is chosen with a server-side GET form (`/?mode=divider`,
-  `/?mode=fixed`, `/?mode=emitter`). No JavaScript is used.
+- Mode tabs link to `/?mode=divider`, `/?mode=fixed`, or `/?mode=emitter`.
+  Clicking a tab immediately re-renders the form and schematic on the server.
+  No JavaScript is used, and there is no separate "load form" button.
 - Validation only checks the fields used by the selected mode. For example,
   an invalid RB is ignored in Divider mode, and RE is not required in Fixed mode.
 - An unknown mode is an error and never falls back to Divider.
