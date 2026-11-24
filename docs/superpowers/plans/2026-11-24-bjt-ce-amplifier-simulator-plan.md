@@ -195,10 +195,10 @@ code was changed in this task; `app/bjt.py` remains untouched.
 
 ## Task 6 — Browser acceptance B1–B8
 
-**Status: DONE with one limitation.** B1–B7 PASS (B2 explicitly marked "mechanism PASS,
-model gate open"); B8 is PARTIAL — desktop PASS, phone NOT RUN because OpenCode Browser
-has no viewport emulation. Playwright MCP: NOT RUN (not configured). Evidence and
-screenshots are in `docs/validation.md` and `docs/evidence/`.
+**Status: DONE.** B1–B7 PASS (B2 explicitly marked "mechanism PASS, model gate open");
+B8 PASS at desktop 1296 px and at a real 390 px CSS viewport created with an iframe,
+because OpenCode Browser has no device-emulation control. Playwright MCP: NOT RUN (not
+configured). Evidence and screenshots are in `docs/validation.md` and `docs/evidence/`.
 
 - [ ] **Step 1:** Navigate → snapshot → fill/select → submit → snapshot → read values → compare →
   screenshot for each case B1–B8 using OpenCode Browser.

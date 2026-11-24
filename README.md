@@ -225,7 +225,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, sampled inversion correlation −1.00 | PASS |
 | B6 | Amplitude 10 → 50 mV changed Vin pp 0.020 → 0.100 V | PASS |
 | B7 | RE = 0 → error, no plot, no Success state | PASS |
-| B8 | 1296 × 841 desktop no overflow; 390 px phone NOT RUN | PARTIAL |
+| B8 | 1296 × 841 desktop and 390 px CSS viewport: one column, no overflow, AC plot renders | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

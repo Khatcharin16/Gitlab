@@ -92,11 +92,12 @@ Impeccable: **NOT RUN** — `npx`/Node unavailable.
 | B5 · Transient | Select `.tran`, 10 mV peak / 1 kHz | Vin/Vout vs time with units; phase direction from samples | 108 points, **0.000–5.000 ms**, Vin pp **0.020 V**, Vout pp **0.035 V**; phase from sampled correlation **inverted (~180°), correlation −1.00**; SVG labels `Time (ms)`, `Vin (V)`, `Vout (V)`; run id `lab04-tran-i8zhvdxl` | **PASS** |
 | B6 · Change source | Change amplitude 10 mV → 50 mV, rerun `.tran` | Waveform and measured values change, not hard-coded | Vin pp **0.020 → 0.100 V**, Vout pp **0.035 → 0.174 V**; first SVG polyline begins `64.0,54.3 …` before and `64.0,58.7 …` after; new run id `lab04-tran-x1nt6pwq` | **PASS** |
 | B7 · Invalid / fail | Set RE = 0 and submit | Error, no success state, no stale graph | Error box: `Run failed — no results shown: RE must be > 0 and <= 1e+07`; `plot-svg` count **0**; `ngspice run completed` **absent**; HTTP 400 | **PASS** |
-| B8 · UI | Inspect simulator at desktop viewport | Readable controls, plots, no clipped content | At **1296 × 841**: grid columns `477.8px 729.2px`, `scrollWidth 1281` (no horizontal overflow), submit button visible; CSS has `@media (max-width:1040px)` and `(max-width:520px)` rules | **PARTIAL — desktop PASS, phone NOT RUN** |
+| B8 · UI | Inspect simulator at desktop and 390 px viewport, then run AC | Readable controls, plots and units; no clipped content | **Desktop 1296 × 841**: grid `477.8px 729.2px`, `scrollWidth 1281 = clientWidth 1281` (no horizontal overflow), button visible. **Phone**: real 390 px layout viewport created with an iframe (`docs/evidence/mobile-viewport-check.html`) because OpenCode Browser has no device-emulation control; inside the frame `innerWidth 390` → `clientWidth 375` after scrollbar, `scrollWidth 375`, `matchMedia('(max-width:520px)').matches = true`, grid collapses to **one 362 px column**, button visible. AC run inside the frame completed (`lab04-ac-76d4hbd3`) and the Bode SVG rendered at **299 × 205 px** with labels `|Gain| (dB)`, `Phase (deg)`, `Frequency (Hz, log scale)` | **PASS (desktop + 390 px CSS viewport)** |
 
-B8 phone viewport is **NOT RUN** because the available OpenCode Browser toolset has no
-viewport/device-emulation control; the responsive rules exist in `app/static/style.css` but
-were not browser-verified at 390 px. Do not treat this as a PASS.
+Phone verification used a real 390 px iframe layout viewport in Chromium, so the CSS media
+queries and grid reflow were evaluated by the browser itself. It is **not** Playwright MCP
+device emulation; that tool remains NOT RUN. Screenshots: `docs/evidence/B8-desktop-1296.png`
+and `docs/evidence/B8-mobile-390.png`.
 
 Screenshots: `docs/evidence/B1-lab3-regression.png`, `B2-dc-spice.png`,
 `B3-change-re.png`, `B4-ac-bode.png`, `B5-transient.png`, `B6-change-source.png`,
@@ -122,6 +123,7 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
   claimed until the Starter Kit model is supplied.
 - The −3 dB crossing was outside the simulated sweep for the test model and is reported as
   `not determined in sweep range`, not guessed.
-- B8 mobile viewport and Playwright MCP remain NOT RUN as recorded above.
+- Playwright MCP device emulation remains NOT RUN; B8 mobile was checked in a real 390 px
+  iframe layout viewport instead, as recorded above.
 - All `run.log` excerpts and raw files listed above were produced by ngspice-47 in batch
   mode; no trace was generated from constants or hand-drawn points.
