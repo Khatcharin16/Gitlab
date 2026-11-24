@@ -37,6 +37,48 @@
 </table>
 {% endif %}
 {% endmacro %}
+{% macro result_panel(key, title, fields, directive, choice) %}
+{% set data = results.get(key) if results else none %}
+<article class="result-block {{ 'is-active' if data else 'is-idle' }}">
+  <header class="result-head">
+    <div class="result-heading">
+      <h3>{{ title }}</h3>
+      <p class="result-fields">{{ fields|safe }}</p>
+    </div>
+    <span class="result-chip {{ 'matched' if data else 'pending' }}">
+      {{ 'SPICE · ' ~ directive if data else 'not run' }}
+    </span>
+  </header>
+  {% if data %}
+  <div class="result-body">
+    <p class="result-runline">SPICE results · {{ directive }} completed ·
+      exit {{ data.provenance.returncode }} ·
+      <code>{{ data.provenance.run_id }}</code></p>
+    <dl class="metric-grid">
+      {% for row in data.rows %}
+      <div class="metric"><dt>{{ row.label|safe }}</dt><dd>{{ row.value }}</dd></div>
+      {% endfor %}
+    </dl>
+    {% if data.analytical %}
+    <p class="result-crosscheck"><strong>Analytical reference (Lab 3 — not SPICE):</strong>
+      I<sub>C</sub> {{ data.analytical.ic }} ·
+      V<sub>CE</sub> {{ data.analytical.vce }}<br>
+      {{ data.analytical.note }}</p>
+    {% endif %}
+    {% if data.samples %}
+    <details class="sample-details">
+      <summary>{{ data.samples|length }} parsed sample points · expand table</summary>
+      {{ sample_table(data) }}
+    </details>
+    {% endif %}
+  </div>
+  {% elif results %}
+  <p class="result-empty not-run">Not run in this mode — select {{ choice }} and run again.</p>
+  {% else %}
+  <p class="result-empty">No {{ choice }} run yet.</p>
+  {% endif %}
+</article>
+{% endmacro %}
 
 <div class="page lab04-page">
 
@@ -306,78 +348,14 @@
         <span class="step-tag">04 · measured values</span>
       </div>
 
-      <div class="results-grid">
-      <article class="result-block">
-        <h3>DC Operating Point</h3>
-        <p class="result-fields">V<sub>B</sub> · V<sub>E</sub> · V<sub>C</sub> · V<sub>CE</sub> · I<sub>C</sub></p>
-        {% if results and results.get('dc') %}
-        <div class="status ok compact">
-          <div><div class="status-title">SPICE results · .op completed</div>
-            <div class="status-text">exit {{ results['dc'].provenance.returncode }} ·
-              model {{ results['dc'].provenance.model_name }} ·
-              <code>{{ results['dc'].provenance.run_id }}</code></div></div>
-        </div>
-        <table class="spice-table result-table">
-          <tbody>
-          {% for row in results['dc'].rows %}
-            <tr><th scope="row">{{ row.label|safe }}</th><td>{{ row.value }}</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        {% if results['dc'].analytical %}
-        <p class="result-crosscheck"><strong>Analytical reference (Lab 3 — not SPICE):</strong>
-          I<sub>C</sub> {{ results['dc'].analytical.ic }} ·
-          V<sub>CE</sub> {{ results['dc'].analytical.vce }}<br>
-          {{ results['dc'].analytical.note }}</p>
-        {% endif %}
-        {% elif results %}
-        <p class="result-empty not-run">Not run in this mode — select DC and run again.</p>
-        {% else %}<p class="result-empty">No DC run yet.</p>{% endif %}
-      </article>
-
-      <article class="result-block">
-        <h3>AC Frequency Response</h3>
-        <p class="result-fields">Gain / Phase / Frequency</p>
-        {% if results and results.get('ac') %}
-        <div class="status ok compact">
-          <div><div class="status-title">SPICE results · .ac completed</div>
-            <div class="status-text">exit {{ results['ac'].provenance.returncode }} ·
-              <code>{{ results['ac'].provenance.run_id }}</code></div></div>
-        </div>
-        <table class="spice-table result-table">
-          <tbody>
-          {% for row in results['ac'].rows %}
-            <tr><th scope="row">{{ row.label|safe }}</th><td>{{ row.value }}</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        {{ sample_table(results['ac']) }}
-        {% elif results %}
-        <p class="result-empty not-run">Not run in this mode — select AC and run again.</p>
-        {% else %}<p class="result-empty">No AC run yet.</p>{% endif %}
-      </article>
-
-      <article class="result-block">
-        <h3>Transient Response</h3>
-        <p class="result-fields">V<sub>in</sub> / V<sub>out</sub> / Time</p>
-        {% if results and results.get('tran') %}
-        <div class="status ok compact">
-          <div><div class="status-title">SPICE results · .tran completed</div>
-            <div class="status-text">exit {{ results['tran'].provenance.returncode }} ·
-              <code>{{ results['tran'].provenance.run_id }}</code></div></div>
-        </div>
-        <table class="spice-table result-table">
-          <tbody>
-          {% for row in results['tran'].rows %}
-            <tr><th scope="row">{{ row.label|safe }}</th><td>{{ row.value }}</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        {{ sample_table(results['tran']) }}
-        {% elif results %}
-        <p class="result-empty not-run">Not run in this mode — select Transient and run again.</p>
-        {% else %}<p class="result-empty">No transient run yet.</p>{% endif %}
-      </article>
+      <div class="results-list">
+        {{ result_panel('dc', 'DC Operating Point',
+                        'V<sub>B</sub> · V<sub>E</sub> · V<sub>C</sub> · V<sub>CE</sub> · I<sub>C</sub>',
+                        '.op', 'DC') }}
+        {{ result_panel('ac', 'AC Frequency Response',
+                        'Gain / Phase / Frequency', '.ac', 'AC') }}
+        {{ result_panel('tran', 'Transient Response',
+                        'V<sub>in</sub> / V<sub>out</sub> / Time', '.tran', 'Transient') }}
       </div>
 
       {% if result %}

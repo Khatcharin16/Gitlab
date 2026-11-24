@@ -202,6 +202,15 @@ output; the 390 px viewport keeps the same DOM/visual order in one column. Tests
 passed**; rendered Impeccable detector: `[]` at 1280×800 and 390×844; real AC POST still
 succeeded with 141 points and no console errors.
 
+**Follow-up engineering-results pass:** the three equal-width cards became one vertical
+list with `SPICE · .op/.ac/.tran` or `not run` chips, aligned definition-list metric grids
+and collapsed sample tables. Idle analyses stay ~90 px instead of stretching to the
+active row; active rows measured 268–298 px. A detector pass flagged numbered `01/02/03`
+labels and low-contrast idle index text, so both were removed rather than restyled. Final
+rendered detector remained `[]` at both viewports; DC, AC and transient browser runs all
+succeeded without console errors; tests remained **54 passed**. No formula, netlist,
+parser, validation or JS code changed.
+
 ---
 
 ## Task 6 — Browser acceptance B1–B8

@@ -950,7 +950,6 @@ input[type="number"] {
 }
 
 .param-group h3,
-.result-block h3,
 .engine-block h3 {
   margin: 10px 0 2px;
   font-size: 0.86rem;
@@ -1066,37 +1065,143 @@ input[type="number"] {
   text-align: center;
 }
 
-.result-fields {
-  margin: 0 0 6px;
-  font-size: 0.9rem;
+/* Results read as a vertical list: one analysis per row, with a strong
+   identity on the left and aligned metrics underneath the active one.
+   Inactive analyses stay compact instead of stretching to match a run. */
+.results-list {
+  display: grid;
+}
+
+.result-block {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.result-block:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.result-block.is-idle {
+  padding: 10px 0;
+}
+
+.result-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.result-heading {
+  min-width: 0;
+}
+
+.result-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #19394e;
+  color: var(--navy-strong);
 }
 
-.result-empty,
+.result-block.is-idle .result-head h3 {
+  color: #35536b;
+}
+
+.result-fields {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.result-chip {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.result-chip.matched {
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+
+.result-chip.pending {
+  background: #eef2f6;
+  color: var(--muted);
+}
+
+.result-runline {
+  margin: 10px 0 4px;
+  font-size: 0.8rem;
+  color: var(--green-text);
+}
+
+.result-runline code {
+  overflow-wrap: anywhere;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 2px 18px;
+  margin: 8px 0 0;
+}
+
+.metric {
+  padding: 8px 0 6px;
+  border-top: 1px solid #e2ebf1;
+}
+
+.metric dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metric dd {
+  margin: 3px 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy-strong);
+}
+
 .result-crosscheck {
-  font-size: 0.82rem;
-  color: #4d6579;
-  line-height: 1.45;
+  margin: 10px 0 0;
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid var(--amber-border);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #6b5220;
+  text-wrap: pretty;
 }
 
-.result-table th,
-.result-table td {
-  padding: 6px 8px;
-  font-size: 0.86rem;
+.sample-details {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
 }
 
-.status.compact {
-  padding: 6px 0;
-  margin: 6px 0;
+.sample-details summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal-dark);
 }
 
-.status.compact .status-title {
-  font-size: 0.88rem;
+.sample-details[open] summary {
+  margin-bottom: 6px;
 }
 
-.status.compact .status-text {
-  font-size: 0.76rem;
+.result-empty {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
 .engine-block {
@@ -1227,18 +1332,6 @@ input[type="number"] {
   color: #13645c;
 }
 
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px 18px;
-}
-
-.result-block {
-  padding: 10px 0 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 0;
-}
-
 .plot-legend {
   margin: 5px 0 12px;
   font-size: 0.75rem;
@@ -1256,7 +1349,7 @@ input[type="number"] {
 
 .sample-table {
   margin-top: 8px;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
 }
 
 .sample-table th,
@@ -1337,7 +1430,7 @@ input[type="number"] {
 
 .card-head h2,
 .param-group h3,
-.result-block h3,
+.result-head h3,
 .engine-block h3,
 .plot-title,
 .goal-title {

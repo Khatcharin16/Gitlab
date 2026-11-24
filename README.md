@@ -102,6 +102,9 @@ The student's verification for Lab 04:
 - reorganised `/simulate` into five separated panels (Parameters, Circuit reference,
   Run control, Plots, Results), kept the same DOM and visual order on a 390 px viewport,
   and rechecked a real AC run plus both detector viewports after the change,
+- rebuilt Engineering results as a vertical list with `SPICE · .op/.ac/.tran` or
+  `not run` chips, aligned metric grids and collapsed sample tables, then re-ran
+  DC/AC/Transient in the browser with no console errors,
 - reviewed `git diff` and `git diff --staged` before committing.
 
 Code locations:
@@ -215,7 +218,8 @@ unless ngspice exits 0 and its raw file parses successfully.
 Expected: **54 passed** (23 Lab 03 + 31 Lab 04). Lab 04 adds adapter, parser,
 plot and route tests, including checks for the five separated panels,
 selected-mode dispatch, `VIC`-based IC, midband −3 dB calculation, legends,
-sample tables, the AC-centred transient waveform view and all three result cards. Browser acceptance is recorded in
+collapsed sample tables, the AC-centred transient waveform view and all three
+result panels. Browser acceptance is recorded in
 [`docs/validation.md`](docs/validation.md).
 
 ## Project layout
@@ -257,7 +261,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
 | B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
-| B8 | Layout: 1296 px desktop two-column workspace (400 px setup rail + flexible output) and 390 px CSS viewport one column; no page overflow; five panels, plots, fixture summary and result cards render; Impeccable detector clean after both polish passes | PASS |
+| B8 | Layout: 1296 px desktop two-column workspace (400 px setup rail + flexible output) and 390 px CSS viewport one column; no page overflow; five panels, plots, fixture summary and vertical result list render; Impeccable detector clean after all polish passes | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).
