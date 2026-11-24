@@ -53,15 +53,20 @@ text after submitting the form.
 
 # Lab 04 — Browser Acceptance (B1–B8)
 
-Date: 2026-11-24 (final handout-fidelity pass)  
-App: <http://127.0.0.1:5001> (Flask dev server, `.venv\Scripts\python.exe` = Python 3.14.2, `debug=False`).  
+Date: 2026-11-24 (final handout-fidelity pass + Impeccable polish pass)
+
+App: <http://127.0.0.1:5001> (Flask dev server, `.venv\Scripts\python.exe`, `debug=False`).
+
 Method: **OpenCode Browser** (navigate, fresh snapshot, radio select/fill, real form submit,
 snapshot/evaluate, compare with directly parsed ngspice arrays, screenshot). Port 5001 was
 used because an older server process still held port 5000.  
 Playwright MCP: **NOT RUN** — the tool is not configured in this repository. These results
 are OpenCode Browser / manual verification and are **not** claimed as Playwright MCP results.  
-Impeccable: **NOT RUN** — `npx`/Node is unavailable; the Node LTS install was cancelled at
-the administrator prompt, so no Impeccable critique is claimed.
+Impeccable: **RUN (detector + manual polish)** — portable Node 22.23.5 was used to install
+`impeccable` v4.10.0 into the git-ignored `.opencode/` folder. The bundled detector was run on
+the rendered `/simulate` page at 1280×800 and 390×844 before and after the CSS changes. The
+formal two-sub-agent critique workflow was **NOT RUN**; these are deterministic detector
+results plus manual visual review, not a claimed full design critique.
 
 ## UI redesign to match the handout
 
@@ -93,6 +98,29 @@ banner reports `Success — <directive> completed (1/1)` or
 as a separate, non-SPICE reference. During submission both Run buttons are
 disabled with `aria-busy`, the status text names the selected analysis, and the
 state is restored on `pageshow`.
+
+## Impeccable detector + polish pass
+
+`impeccable detect --json http://127.0.0.1:5001/simulate` was run at 1280×800 and 390×844.
+The first scan found 8 desktop findings: low-contrast secondary text, three nested-card
+instances, a long footer line, a straggler caption line and an unbalanced heading. All were
+handled in `app/static/style.css` only — no formula, netlist, parser or route code changed.
+A representative AC result page was then re-opened in OpenCode Browser: the real `.ac` run
+still rendered (`Success — .ac dec 20 1 10meg completed (1/1)`, 1 SVG, 141 parsed points,
+`−3 dB frequency 1.30961 Hz`) and no console errors were reported.
+
+| Detector finding | Fix | Final scan |
+| --- | --- | --- |
+| Low contrast `#6a7f92` / `#7a8d9c` secondary text (4.0–4.1:1) | Replaced with `#4d6579` (6.1:1 on white, 5.9:1 on `#f9fcfd`) | Gone |
+| Nested cards: `figure.schematic-figure`, `div.fixture-summary`, `div.plot-empty`, `div.status.warn`, `article.engine-block` | Removed box backgrounds/radius/tinted containers; used dividers, spacing and semantic text colour instead | `[]` at both viewports |
+| Long `footer.goal > p` measure (~128 chars) | Added `max-width: 65ch` | Gone |
+| Straggler caption / unbalanced heading | Added `text-wrap: pretty` to body copy and `text-wrap: balance` to headings | Gone |
+
+Final detector output: `[]` at 1280×800 and `[]` at 390×844. Before/after visual evidence:
+`docs/evidence/B8-handout-layout-desktop-1296.png` →
+`docs/evidence/B8-impeccable-after-1280.png`, and
+`docs/evidence/B8-handout-layout-mobile-390.png` →
+`docs/evidence/B8-impeccable-after-390.png`.
 
 ## Engine and model provenance
 
@@ -130,7 +158,7 @@ state is restored on `pageshow`.
 | B5 · Transient | Select Transient, submit, inspect waveform and result table | 10 mV peak, 1 kHz, 0–5 ms window, `Vin = v(base)`, `Vout = v(out)` | Vin/Vout vs time with voltage and time units; CE inversion visible from real samples | **108** points, **0.000–5.000 ms**, Vin pp **19.92 mV**, Vout pp **34.86 mV**, phase **inverted (~180°), correlation −1.00**; axes `Time (ms)` and node-labelled voltage legend | Browser evaluate, run id `lab04-tran-txhpwwzd`, `docs/evidence/B5-transient.png`, parsed `.tran` raw | **PASS** |
 | B6 · Change source | Change both amplitude and frequency, rerun Transient | Amplitude 10 → 20 mV and frequency 1 → 2 kHz | Waveform, time window and measured values change; not a hard-coded trace | Fixture summary becomes `20 mV · 2 kHz`; time window **0.000–2.500 ms**, Vin pp **39.84 mV**, Vout pp **69.72 mV**; SVG coordinates and run id change | Before/after browser evaluations; new run id `lab04-tran-jthrkcc4`; `docs/evidence/B6-change-source.png` | **PASS** |
 | B7 · Invalid / fail | Set RE = 0 and submit; also test engine/parse exception paths in route tests | RE = 0 Ω; simulated `SpiceEngineError` and `SpiceParseError` | Error shown, no Success state, no stale plot or results | Banner `Error — no results shown` with `RE must be > 0 and <= 1e+07`; `plot-svg` count **0**, no `Success —`, HTTP 400. Exception paths render HTTP 502 with an error and no chart | Browser evaluate + `tests/test_simulate_routes.py`; `docs/evidence/B7-invalid-re.png` | **PASS** |
-| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Desktop and phone layouts from the handout; all blocks, buttons, plots and units readable without clipped critical content | **Desktop**: `innerWidth 1296`, `clientWidth 1281`, `scrollWidth 1281` (no document overflow), grid `357.891px 511.281px 323.828px`; fixture summary, compact Run and active-mode radio visible; AC SVG renders. **Phone**: `innerWidth 390`, `clientWidth/scrollWidth 375`, one `347px` column, compact Run visible; the plot panel scrolls horizontally (`299px` viewport, `560px` SVG) so axis labels stay legible while the document itself has no overflow | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png` | **PASS** |
+| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Desktop and phone layouts from the handout; all blocks, buttons, plots and units readable without clipped critical content | **Desktop**: `innerWidth 1296`, `clientWidth 1281`, `scrollWidth 1281` (no document overflow), grid `357.891px 511.281px 323.828px`; fixture summary, compact Run and active-mode radio visible; AC SVG renders. **Phone**: `innerWidth 390`, `clientWidth/scrollWidth 375`, one `347px` column, compact Run visible; the plot panel scrolls horizontally (`299px` viewport, `560px` SVG) so axis labels stay legible while the document itself has no overflow | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png`, post-polish `B8-impeccable-after-1280.png` and `B8-impeccable-after-390.png` | **PASS** |
 
 Phone and desktop verification used real CSS layout viewports in Chromium iframes because
 OpenCode Browser has no device-emulation control. It is **not** Playwright MCP device
@@ -155,6 +183,9 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 | Full suite after implementation | same command | **51 passed** (23 Lab 03 + 28 Lab 04) | **PASS** |
 | Full suite after handout-layout redesign | same command | **52 passed** (23 Lab 03 + 29 Lab 04) | **PASS** |
 | Full suite after final fidelity pass | same command | **53 passed** (23 Lab 03 + 30 Lab 04); includes VIC/IC extraction, selected-mode dispatch, midband −3 dB logic, status/legend/sample-table assertions | **PASS** |
+| Full suite after Impeccable CSS polish | same command | **53 passed**; only `app/static/style.css` changed, so analytical and SPICE behavior is unchanged | **PASS** |
+| Impeccable detector after polish | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports; result-page AC run still succeeded with 1 parsed SVG and no console errors | **PASS** |
+| Formal Impeccable dual-agent critique | Not attempted | Detector + manual polish only; no two-sub-agent design critique is claimed | **NOT RUN** |
 | Engine failure path | route test monkeypatch raising `SpiceEngineError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | Parse failure path | route test monkeypatch raising `SpiceParseError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | No stale result after a failure | successful AC POST then `RE = 0` POST in the same client | SVG disappears, error remains | **PASS** |
@@ -180,8 +211,9 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
   legibility choice; the page itself has no horizontal overflow.
 - Playwright MCP device emulation remains NOT RUN; B8 used real 1296 px and 390 px CSS
   iframe layout viewports instead, as recorded above.
-- Impeccable remains NOT RUN because Node/npx is unavailable after the cancelled
-  administrator prompt. No visual-critique result is claimed; the UI was checked against
-  the handout directly in OpenCode Browser.
+- Impeccable was run as a deterministic detector + manual polish pass after portable Node
+  made the CLI available. The formal two-sub-agent critique workflow remains NOT RUN, so no
+  full heuristic-scored critique is claimed. The detector was clean at both target viewports
+  after the CSS-only fixes; the test-only BJT model caveat above is unchanged.
 - All `run.log` excerpts and raw files listed above were produced by ngspice-47 in batch
   mode; no trace was generated from constants or hand-drawn points.

@@ -92,6 +92,9 @@ The student's verification for Lab 04:
 - confirmed `RE = 0` and engine/parse failures show errors without a chart,
 - checked Running/aria-busy state, model source label, Bode −3 dB reference and
   desktop 1296 px / phone 390 px CSS layouts,
+- ran the Impeccable detector at 1280×800 and 390×844, fixed its contrast/nested-card/
+  measure findings in CSS only, confirmed a clean `[]` scan, and rechecked the real AC page
+  in OpenCode Browser,
 - reviewed `git diff` and `git diff --staged` before committing.
 
 Code locations:
@@ -247,7 +250,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00 | PASS |
 | B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
-| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no page overflow; selected plot, fixture summary, sample tables and three result cards render | PASS |
+| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no page overflow; selected plot, fixture summary, sample tables and three result cards render; Impeccable detector clean after CSS polish | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

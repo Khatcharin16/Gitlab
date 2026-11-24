@@ -428,13 +428,13 @@ input[type="number"] {
 }
 
 .status {
-  margin-top: 18px;
-  border-radius: 10px;
-  padding: 14px 16px;
+  margin-top: 14px;
+  padding: 10px 0;
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  border: 1px solid;
+  border: 0;
+  border-block: 1px solid;
 }
 
 .status svg {
@@ -455,19 +455,19 @@ input[type="number"] {
 }
 
 .status.ok {
-  background: var(--green-bg);
+  background: transparent;
   border-color: var(--green-border);
   color: var(--green-text);
 }
 
 .status.warn {
-  background: var(--amber-bg);
+  background: transparent;
   border-color: var(--amber-border);
   color: var(--amber-text);
 }
 
 .status.bad {
-  background: var(--red-bg);
+  background: transparent;
   border-color: var(--red-border);
   color: var(--red-text);
 }
@@ -570,8 +570,10 @@ input[type="number"] {
 
 .goal p {
   margin: 0;
+  max-width: 65ch;
   font-size: 1.02rem;
   color: #16324a;
+  text-wrap: pretty;
 }
 
 .goal em {
@@ -882,10 +884,7 @@ input[type="number"] {
 
 .schematic-figure {
   margin: 12px 0 14px;
-  padding: 8px;
-  background: #f9fcfd;
-  border: 1px solid #dce7ee;
-  border-radius: 10px;
+  padding: 0;
 }
 
 .ce-schematic {
@@ -895,7 +894,9 @@ input[type="number"] {
 }
 
 .schematic-figure figcaption {
-  margin-top: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #dce7ee;
   font-size: 0.76rem;
   line-height: 1.4;
   color: #547084;
@@ -934,7 +935,7 @@ input[type="number"] {
   display: block;
   margin-left: 0;
   font-size: 0.74rem;
-  color: #6a7f92;
+  color: #4d6579;
 }
 
 .lab04-layout .param-row input,
@@ -1010,10 +1011,8 @@ input[type="number"] {
   place-items: center;
   min-height: 110px;
   padding: 16px;
-  border: 1px dashed #c8d9e8;
-  border-radius: 10px;
-  background: #f9fcfd;
-  color: #6a7f92;
+  border-block: 1px dashed #c8d9e8;
+  color: #4d6579;
   font-size: 0.84rem;
   text-align: center;
 }
@@ -1033,7 +1032,7 @@ input[type="number"] {
 .result-empty,
 .result-crosscheck {
   font-size: 0.82rem;
-  color: #6a7f92;
+  color: #4d6579;
   line-height: 1.45;
 }
 
@@ -1044,7 +1043,7 @@ input[type="number"] {
 }
 
 .status.compact {
-  padding: 8px;
+  padding: 6px 0;
   margin: 6px 0;
 }
 
@@ -1057,11 +1056,9 @@ input[type="number"] {
 }
 
 .engine-block {
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid #a7cfc2;
-  border-radius: 9px;
-  background: #eef8f4;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #a7cfc2;
 }
 
 .engine-block p {
@@ -1091,11 +1088,9 @@ input[type="number"] {
 
 /* Lab 04 completion: fixture, status, legends and real sample rows. */
 .fixture-summary {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border: 1px solid #a7cfc2;
-  border-radius: 8px;
-  background: #eef8f4;
+  margin-top: 10px;
+  padding: 8px 0;
+  border-block: 1px solid #a7cfc2;
   font-size: 0.78rem;
   line-height: 1.6;
   color: #13645c;
@@ -1176,7 +1171,7 @@ input[type="number"] {
 
 .not-run {
   font-style: italic;
-  color: #7a8d9c;
+  color: #4d6579;
 }
 
 .sample-table {
@@ -1238,6 +1233,24 @@ input[type="number"] {
     display: block;
     padding: 2px 6px 5px;
     font-size: 0.68rem;
-    color: #6a7f92;
+    color: #4d6579;
   }
+}
+
+/* Impeccable polish pass — readable measures and balanced headings. */
+.plot-help,
+.schematic-figure figcaption,
+.result-empty,
+.result-crosscheck,
+.status-text {
+  text-wrap: pretty;
+}
+
+.card-head h2,
+.param-group h3,
+.result-block h3,
+.engine-block h3,
+.plot-title,
+.goal-title {
+  text-wrap: balance;
 }

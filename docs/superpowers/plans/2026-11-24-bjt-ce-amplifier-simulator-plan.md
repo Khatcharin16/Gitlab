@@ -176,20 +176,22 @@ Browser evidence is still pending; it is recorded honestly in `docs/validation.m
 
 ## Task 5 — UI refinement and honest tool reporting
 
-**Status: DONE (manual critique).** Impeccable **NOT RUN — npx/Node unavailable**. Added
-grouped inputs, analysis radios, visible engine/model status, separate SPICE/Analytical
-sections, readable SVG legends, provenance `<details>` and responsive rules. No numerical
-code was changed in this task; `app/bjt.py` remains untouched.
+**Status: DONE.** Impeccable **RUN as detector + manual polish** after portable Node was
+installed; the formal two-sub-agent `critique → polish → audit` workflow remains **NOT RUN**.
+Added grouped inputs, analysis radios, visible engine/model status, separate
+SPICE/Analytical sections, readable SVG legends, provenance `<details>` and responsive rules.
+The final detector scan is `[]` at 1280×800 and 390×844. No numerical code was changed in
+this task; `app/bjt.py` remains untouched.
 
-- [ ] **Step 1:** If `npx` is available, install/load Impeccable and run
-  `critique → polish → audit` on the running local app; otherwise do a manual critique and state
-  "Impeccable NOT RUN — npx unavailable".
-- [ ] **Step 2:** Prioritise grouped inputs, readable plots/legends, visible status and provenance,
-  error states, and responsive layout; keep circuit/plot clarity above decoration.
-- [ ] **Step 3:** Inspect at ~1280 px and ~390 px with OpenCode Browser; capture before/after
-  screenshots under `docs/evidence/`.
-- [ ] **Step 4:** Confirm no formula, netlist or parser file was changed in this task
-  (`git diff` review), then run the tests again.
+- [x] **Step 1:** With portable `npx` available, installed Impeccable v4.10.0 into the
+  git-ignored `.opencode/` folder and ran `detect --json` on the rendered page before and after
+  CSS changes. Full critique sub-agents were not run; this is reported honestly.
+- [x] **Step 2:** Prioritised grouped inputs, readable plots/legends, visible status and provenance,
+  error states, and responsive layout; kept circuit/plot clarity above decoration.
+- [x] **Step 3:** Inspected at ~1280 px and ~390 px; captured before/after screenshots under
+  `docs/evidence/` (`B8-impeccable-after-1280.png`, `B8-impeccable-after-390.png`).
+- [x] **Step 4:** Confirmed only `app/static/style.css` changed in this polish task
+  (`git diff` review), then ran the tests: **53 passed**.
 
 ---
 
