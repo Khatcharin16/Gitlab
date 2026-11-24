@@ -2,9 +2,10 @@
 
 Date: 2026-11-17  
 App: <http://127.0.0.1:5000> (Flask development server, Python 3.10.11)  
-Method: **OpenCode built-in Browser** (navigate, snapshot, click mode tab, fill, click)  
-Playwright MCP: **NOT RUN** — it is not configured in this repository. The lab
-sheet allows OpenCode Browser or manual checking as the fallback.
+Method: **OpenCode built-in Browser** (navigate, snapshot, click mode tab, fill, click) for A1–A5.  
+Playwright MCP was not installed on 2026-11-17. It was installed on 2026-11-24 and the Lab 03
+regression was then re-checked with it (see B1 in the Lab 04 section and
+`docs/evidence/tooling-playwright/B1-lab03.png`).
 
 Common inputs for A1–A5: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.  
 Tolerance from the lab sheet: ±0.01 mA for IC and ±0.02 V for VCE.
@@ -58,18 +59,40 @@ Repository: <https://github.com/Khatcharin16/Gitlab>
 
 Date: 2026-11-24 (final handout-fidelity pass + Impeccable polish pass)
 
-App: <http://127.0.0.1:5001> (Flask dev server, `.venv\Scripts\python.exe`, `debug=False`).
+App: <http://127.0.0.1:5002> for the final Playwright MCP pass (Flask dev server,
+`.venv\Scripts\python.exe`, `debug=False`, **no `NGSPICE_BIN`** — the engine is resolved from
+`PATH`). Earlier passes used port 5001 because an older server process still held port 5000.
 
-Method: **OpenCode Browser** (navigate, fresh snapshot, radio select/fill, real form submit,
-snapshot/evaluate, compare with directly parsed ngspice arrays, screenshot). Port 5001 was
-used because an older server process still held port 5000.  
-Playwright MCP: **NOT RUN** — the tool is not configured in this repository. These results
-are OpenCode Browser / manual verification and are **not** claimed as Playwright MCP results.  
+Method: **Playwright MCP** (*@playwright/mcp* 0.0.86, Microsoft Edge channel, headless) driving
+the real form: navigate, evaluate/select, click submit, wait for the run banner, snapshot, and
+screenshot. Earlier passes used OpenCode Browser and are kept in the file history; B1–B8 below
+were re-run with Playwright MCP on 2026-11-24.  
+
 Impeccable: **RUN (detector + manual polish)** — portable Node 22.23.5 was used to install
 `impeccable` v4.10.0 into the git-ignored `.opencode/` folder. The bundled detector was run on
-the rendered `/simulate` page at 1280×800 and 390×844 before and after the CSS changes. The
-formal two-sub-agent critique workflow was **NOT RUN**; these are deterministic detector
-results plus manual visual review, not a claimed full design critique.
+the rendered `/simulate` page at 1280×800 and 390×844 before and after the CSS changes; the final
+output was `[]` at both viewports. The formal two-sub-agent critique workflow was **NOT RUN**;
+these are deterministic detector results plus manual visual review, not a claimed full design
+critique.
+
+## Toolchain check (handout “04 / Setup & Starter”)
+
+Run on 2026-11-24 before the final acceptance pass. Everything the handout lists was checked;
+the two missing pieces were installed, not assumed.
+
+| Tool | Check | Result |
+| --- | --- | --- |
+| Git + GitHub | `git status --short --branch`, `git remote -v` | `main...origin/main`, clean tree; `origin` = `https://github.com/Khatcharin16/Gitlab.git` — **PASS** |
+| Python + Flask | `.venv\Scripts\python.exe --version`, `GET /simulate` | Python **3.12.7**, Flask server returns **200** — **PASS** |
+| ngspice | `ngspice_con --version` from a **fresh-login PATH** (machine + user PATH, no `NGSPICE_BIN`) | **ngspice-47** found at `%LOCALAPPDATA%\Programs\ngspice-47\Spice64\bin`; a real DC run succeeded on the PATH-only server (`Success — .op completed (1/1)`, `lab04-dc-1rsj5oto`) — **PASS** |
+| Node.js (needed by Playwright MCP) | `node --version`, `npm --version` | Was **missing** → installed portable Node **22.23.5** to `%LOCALAPPDATA%\Programs\node` and added it to the user PATH — **INSTALLED** |
+| Playwright MCP | `opencode mcp list`, then navigate + snapshot + screenshot in a real browser | Was **NOT RUN** (not configured) → installed *@playwright/mcp* 0.0.86, registered as a local MCP server (Edge channel), connection **connected**; navigate/snapshot/screenshot all worked — **PASS** |
+| Impeccable | `impeccable detect --json … --viewport 1280x800` / `390x844` | Project skill loads; detector returns `[]` at both viewports — **PASS** |
+| Superpowers (OpenCode skill set) | `opencode.json` → `plugins`, plugin load log, skill list | Was **missing** → installed *superpowers* **7.0.2** from `obra/superpowers`, plugin loaded (`msg="loading plugin"`), **15 skills** registered (brainstorming, writing-plans, test-driven-development, systematic-debugging, …) — **INSTALLED** |
+
+Install locations (not committed; machine-level): `%LOCALAPPDATA%\Programs\ngspice-47`,
+`%LOCALAPPDATA%\Programs\node`, `%LOCALAPPDATA%\Programs\node\node_modules\@playwright\mcp`,
+`%USERPROFILE%\.config\opencode\node_modules\superpowers`.
 
 **Model fallback (final pass).** The Instructor Starter Kit `.model` file was not present on
 this machine. To keep the app runnable without inventing parameters, the adapter resolves the
@@ -303,6 +326,8 @@ in `docs/evidence/spice-sample/`. The earlier `QTEST` plumbing artifacts remain 
 | Full suite after layout clarity pass | same command | **54 passed**; one route test renamed to assert five separated panels instead of the old three handout labels | **PASS** |
 | Full suite after bundled vendor model | `.venv\Scripts\python.exe -m pytest tests/ -q` | **58 passed** (23 Lab 03 + 35 Lab 04); adds `resolve_model` precedence, continuation-line joining, missing-file and no-source fallback tests | **PASS** |
 | Browser rerun with bundled model | real OpenCode Browser POSTs for DC, RE = 2 kΩ, AC, Transient, 20 mV / 2 kHz and `RE = 0` | `lab04-dc-vy3r3d3s`, `lab04-dc-6409572x`, `lab04-ac-v0ofwpp4`, `lab04-tran-yor0ml6g`, `lab04-tran-38832zf7`; all success runs exited 0, `RE = 0` showed `Error — no results shown`; console error list empty | **PASS** |
+| Playwright MCP rerun (B1–B8) | installed *@playwright/mcp* 0.0.86; drove the real form on the PATH-only server at `127.0.0.1:5002` (Edge, headless) | DC `lab04-dc-1rsj5oto`, RE = 2 kΩ `lab04-dc-kypyv0r4`, AC `lab04-ac-qnupv3e6`, Transient `lab04-tran-8mjz3c9u`, 20 mV / 2 kHz `lab04-tran-mj_x9z2g`, layout AC `lab04-ac-l7zdh2mc`; every banner showed `ngspice exit 0`; `RE = 0` showed `Error — no results shown` with 0 plots; console error count **0** since navigation; screenshots in `docs/evidence/tooling-playwright/` and the rubric pack `docs/evidence/submission/` | **PASS** |
+| Playwright MCP connectivity | `opencode mcp list` then navigate / snapshot / screenshot on the running app | `○ playwright pending` immediately after config reload, then tool calls succeeded and returns `### Page URL` + snapshot + saved PNG | **PASS** |
 | Impeccable detector after bundled model | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports with the new `unverified` badge/warning visible | **PASS** |
 | Impeccable detector after polish | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports; result-page AC run still succeeded with 1 parsed SVG and no console errors | **PASS** |
 | Formal Impeccable dual-agent critique | Not attempted | Detector + manual polish only; no two-sub-agent design critique is claimed | **NOT RUN** |
@@ -313,7 +338,7 @@ in `docs/evidence/spice-sample/`. The earlier `QTEST` plumbing artifacts remain 
 | `RE >= 0` Lab 03 vs `RE > 0` SPICE | unit tests on both validators | Divider still accepts 0 Ω; SPICE rejects it | **PASS** |
 | Illustrative layout vs real data | route test counts `plot-svg` elements after each selected mode and browser checks SVG point labels | DC renders 0 plots, AC renders 1 Bode SVG, Transient renders 1 waveform SVG; every point is generated from parsed ngspice arrays | **PASS** |
 | Selected-mode dispatch | browser set AC/Transient radios outside the form and submitted; page evaluate immediately after submit | Running text became `Running ngspice (Transient .tran) — please wait…`; both buttons disabled with `aria-busy`, both result regions `aria-busy`; buttons restored on page load | **PASS** |
-| No JavaScript console errors | OpenCode Browser console error level after final AC/Transient runs | Empty error list | **PASS** |
+| No JavaScript console errors | Playwright MCP console error level after a fresh navigation to `/simulate` | **0 errors** since navigation (favicon 404 removed by adding `<link rel="icon" href="data:,">`); the only HTTP 400 in the historical log is the intentional B7 invalid-input POST | **PASS** |
 | Parser fixture regeneration | real ngspice-47 batch run of `parser_fixture.cir`, then parser unit test | OP section has `i(vic)`; IC is positive and comes from the collector branch only | **PASS** |
 
 ## Limitations
@@ -331,8 +356,11 @@ in `docs/evidence/spice-sample/`. The earlier `QTEST` plumbing artifacts remain 
   result cards deliberately say `Not run in this mode` instead of filling old values.
 - On the 390 px CSS viewport the plot is horizontally scrollable inside its panel. This is a
   legibility choice; the page itself has no horizontal overflow.
-- Playwright MCP device emulation remains NOT RUN; B8 used real 1296 px and 390 px CSS
-  iframe layout viewports instead, as recorded above.
+- Playwright MCP was **installed and used** for the final B1–B8 pass (2026-11-24). It ran with
+  the Microsoft Edge channel in headless mode because the machine has no downloaded Chromium
+  bundle. B8 therefore measures the real browser at a resized 1280×800 and 390×844 window
+  (`innerWidth`/`scrollWidth` recorded), not a device-emulation profile; mobile network and
+  touch behaviour are still **NOT RUN**.
 - Impeccable was run as a deterministic detector + manual polish pass after portable Node
   made the CLI available. The formal two-sub-agent critique workflow remains NOT RUN, so no
   full heuristic-scored critique is claimed. The detector was clean at both target viewports

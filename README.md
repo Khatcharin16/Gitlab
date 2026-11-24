@@ -184,19 +184,43 @@ For a non-reloading server (used for browser acceptance):
 ## Lab 04 — ngspice setup
 
 The simulator needs the **console** build `ngspice_con.exe`; the GUI `ngspice.exe`
-produces no batch output. On this machine ngspice-47 (64-bit Windows 7z from the
-official SourceForge release) lives at:
+produces no batch output. ngspice-47 (64-bit Windows 7z from the official SourceForge
+release) is installed on this machine at:
 
 ```text
-C:\Users\B6837006\AppData\Local\Temp\opencode\ngspice-47\Spice64\bin\ngspice_con.exe
+C:\Users\B6837006\AppData\Local\Programs\ngspice-47\Spice64\bin\ngspice_con.exe
 ```
 
-Set the engine path before starting Flask, or add that `bin` folder to `PATH`:
+That `bin` folder is on the **user PATH**, so the app finds the engine with no environment
+variable at all (`shutil.which("ngspice_con")`). Verify from a fresh terminal:
+
+```powershell
+ngspice_con --version     # -> ngspice-47 : Circuit level simulation program
+.venv\Scripts\python.exe -m app.app
+```
+
+If your machine does not have it on PATH, point the app at it explicitly:
 
 ```powershell
 $env:NGSPICE_BIN = "...\ngspice-47\Spice64\bin\ngspice_con.exe"
 .venv\Scripts\python.exe -m app.app
 ```
+
+### Tooling used for the acceptance evidence
+
+The prototype evidence was captured with browser automation, not by hand:
+
+| Tool | Version / location | Purpose |
+| --- | --- | --- |
+| ngspice | 47, `%LOCALAPPDATA%\Programs\ngspice-47` (on PATH) | real `.op` / `.ac` / `.tran` |
+| Node.js | 22.23.5, `%LOCALAPPDATA%\Programs\node` (on PATH) | runtime for Playwright MCP |
+| Playwright MCP | *@playwright/mcp* 0.0.86, registered in `~/.config/opencode/opencode.json`, Edge channel | B1–B8 navigate / snapshot / screenshot |
+| Impeccable | project skill + detector | layout checks at 1280×800 and 390×844 (`[]`) |
+| Superpowers | 7.0.2 (`obra/superpowers`) | plan / review skills in OpenCode |
+
+These are machine-level tools; they are **not** committed and are not needed to run the app,
+only to re-capture the same evidence. The rubric-mapped image pack is in
+[`docs/evidence/submission/`](docs/evidence/submission/).
 
 ### BJT model (instructor Starter Kit)
 
@@ -244,7 +268,9 @@ plot and route tests, including model-resolution precedence (env line → file �
 bundled vendor model), `VIC`-based IC, the five separated panels, selected-mode
 dispatch, midband −3 dB calculation, legends, collapsed sample tables, the
 AC-centred transient waveform view and all three result panels. Browser
-acceptance is recorded in [`docs/validation.md`](docs/validation.md).
+acceptance is recorded in [`docs/validation.md`](docs/validation.md), and the rubric-mapped
+image pack (with a Thai manifest explaining what each screenshot proves) is in
+[`docs/evidence/submission/`](docs/evidence/submission/).
 
 ## Project layout
 
@@ -261,6 +287,8 @@ models/             2N3904_onsemi.model (cited vendor fallback, not instructor-v
 tests/              58 pytest tests (23 Lab 03 + 35 Lab 04)
 docs/validation.md  A1–A5 and B1–B8 acceptance evidence
 docs/evidence/      Screenshots and real ngspice log/raw samples
+docs/evidence/submission/  Rubric-mapped image pack (one folder per rubric row)
+docs/evidence/tooling-playwright/  B1–B8 captured by Playwright MCP
 ```
 
 ## Lab 03 acceptance summary
@@ -286,10 +314,15 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp / 34.60 mV Vout pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
 | B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.60 → 69.21 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
-| B8 | Layout: 1296 px desktop two-column workspace (400 px setup rail + flexible output) and 390 px CSS viewport one column; no page overflow; five panels, plots, fixture summary and vertical result list render; Impeccable detector clean after all polish passes | PASS |
+| B8 | Layout: 1280 px desktop two-column workspace (setup rail + flexible output) and 390 px viewport one column; `scrollWidth == clientWidth` at both, no page overflow; five panels, plots, fixture summary and result list render; Impeccable detector clean after all polish passes | PASS |
+
+All eight were re-run with **Playwright MCP** (*@playwright/mcp* 0.0.86, Edge channel) on
+2026-11-24 against a Flask server started with **no `NGSPICE_BIN`** — the engine came from
+`PATH`. Console errors since navigation: **0**.
 
 These B2–B8 values are real ngspice-47 output, but the model is the bundled onsemi
 vendor fallback, **not** the Instructor Starter Kit model. Set `NGSPICE_MODEL_LINE`
 or `NGSPICE_MODEL_FILE` to the instructor `.model` line and rerun B2–B6 before
-graded submission. Full detail, engine version, model caveat and screenshots are in
-[`docs/validation.md`](docs/validation.md).
+graded submission. Full detail, engine version, model caveat, run IDs and screenshots are in
+[`docs/validation.md`](docs/validation.md); the rubric-mapped image pack is in
+[`docs/evidence/submission/`](docs/evidence/submission/).
