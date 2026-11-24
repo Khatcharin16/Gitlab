@@ -58,7 +58,28 @@ App: <http://127.0.0.1:5000> (Flask dev server, `.venv\Scripts\python.exe`, `deb
 Method: **OpenCode Browser** (navigate, snapshot/find, fill, radio check, Enter submit,
 snapshot/evaluate, screenshot).  
 Playwright MCP: **NOT RUN** — not configured in this repository.  
-Impeccable: **NOT RUN** — `npx`/Node unavailable.
+Impeccable: **NOT RUN** — `npx`/Node is still unavailable; the Node LTS install was
+cancelled at the administrator prompt, so no visual critique was attempted.
+
+## UI redesign to match the handout
+
+`/simulate` was restructured into the three named blocks from the instructor file:
+
+1. **Circuit & Parameters** — the voltage-divider CE schematic from the handout,
+   editable/default `Vcc`, `RC`, `R1`, `R2`, `RE`, `RL`, `Source` and unit
+   selectors (Ω/kΩ/MΩ, V/mV, Hz/kHz/MHz, pF/nF/µF/mF/F), plus **Run Simulation**.
+2. **Simulation & Plots** — DC / AC / Transient radio modes and two SVG panels,
+   `Bode response` and `Input / Output waveforms`. The panels use the handout's
+   illustrative layout but are plotted **only** from parsed ngspice arrays; there
+   are no placeholder traces.
+3. **Engineering Results** — `DC Operating Point` (`VB · VE · VC · VCE`),
+   `AC Frequency Response` (`Gain / Phase / Frequency`) and `Transient Response`
+   (`Vin / Vout / Time`) tables, followed by the engine/model block and provenance.
+
+A submit runs `.op`, `.ac` and `.tran` in three separate real ngspice batches so
+both plots and all three tables are filled from actual runs. The selected radio
+mode controls which analysis is named in the provenance details; changing mode
+never reuses a previous trace.
 
 ## Engine and model provenance
 
@@ -85,21 +106,22 @@ Impeccable: **NOT RUN** — `npx`/Node unavailable.
 
 | Case | Action | Expected | Observed on page | Decision |
 | --- | --- | --- | --- | --- |
-| B1 · Regression | Open `/?mode=divider`, `fixed`, `emitter` | Lab 03 values unchanged and mode switching works | Divider IC **1.23 mA**, VCE **8.05 V**; Fixed VC **9.51 V**, IC **1.13 mA**; Emitter IC **1.03 mA**, VCE **8.71 V**; all three forms rendered | **PASS** |
-| B2 · DC SPICE | RE = 1 kΩ, DC `.op` run | VB/VE/VC/VCE/IC from ngspice, model and run status visible | `ngspice run completed`, exit 0, run id `lab04-dc-1ulpv80w`; VB **1.94 V**, VE **1.28 V**, VC **9.22 V**, VCE **7.95 V**, IC **1.36 mA**; model `QTEST` with source label `TEST ONLY`; separate Analytical row IC 1.23 mA / VCE 8.05 V | **PASS (mechanism), model gate open** |
-| B3 · Change RE | Change only RE 1 kΩ → 2 kΩ, rerun DC | Operating point changes, no stale values | IC **1.36 → 0.79 mA**, VCE **7.95 → 9.09 V**, VC **9.22 → 10.48 V**; new run id `lab04-dc-3pszazr8`; Analytical row also changed 1.23 → 0.67 mA | **PASS** |
-| B4 · AC | Select AC, rerun with 1 kHz / 10 mV source | Bode axes, gain dB and phase deg from the real run | 141 sweep points, **1–1e7 Hz**, gain **0.54 to 4.86 dB**, phase at first point **−127.5 deg**; SVG has 2 polylines of 141 points and labels `|Gain| (dB)`, `Phase (deg)`, `Frequency (Hz, log scale)`; run id `lab04-ac-xkzi6lb0`; −3 dB shown as `not determined in sweep range` | **PASS** |
-| B5 · Transient | Select `.tran`, 10 mV peak / 1 kHz | Vin/Vout vs time with units; phase direction from samples | 108 points, **0.000–5.000 ms**, Vin pp **0.020 V**, Vout pp **0.035 V**; phase from sampled correlation **inverted (~180°), correlation −1.00**; SVG labels `Time (ms)`, `Vin (V)`, `Vout (V)`; run id `lab04-tran-i8zhvdxl` | **PASS** |
-| B6 · Change source | Change amplitude 10 mV → 50 mV, rerun `.tran` | Waveform and measured values change, not hard-coded | Vin pp **0.020 → 0.100 V**, Vout pp **0.035 → 0.174 V**; first SVG polyline begins `64.0,54.3 …` before and `64.0,58.7 …` after; new run id `lab04-tran-x1nt6pwq` | **PASS** |
+| B1 · Regression | Open `/?mode=divider`, `fixed`, `emitter` after the redesign | Lab 03 values and routes unchanged | Divider IC **1.23 mA**, VCE **8.05 V**; Fixed VC **9.51 V**, IC **1.13 mA**; Emitter IC **1.03 mA**, VCE **8.71 V**; all three forms rendered | **PASS** |
+| B2 · DC SPICE | RE = 1 kΩ, DC `.op` run in the new layout | VB/VE/VC/VCE/IC from ngspice, model and run status visible | `SPICE results · ngspice run completed (.op)`, exit 0, run id `lab04-dc-zd32bzh2`; VB **1.94 V**, VE **1.28 V**, VC **9.22 V**, VCE **7.95 V**, IC **1.36 mA**; model `QTEST` with source label `TEST ONLY`; separate Analytical row IC 1.23 mA / VCE 8.05 V | **PASS (mechanism), model gate open** |
+| B3 · Change RE | Change only RE 1 kΩ → 2 kΩ, rerun DC | Operating point changes, no stale values | IC **1.36 → 0.79 mA**, VCE **7.95 → 9.09 V**; new run id issued; Analytical row also changed. No previous DC table remained | **PASS** |
+| B4 · AC | Select AC, rerun with 1 kHz / 10 mV source | Bode axes, gain dB and phase deg from the real run | 141 sweep points, **1–1e7 Hz**, gain **0.54 to 4.86 dB**, phase at first point **−127.5 deg**; SVG has 2 polylines of 141 points and labels `|Gain| (dB)`, `Phase (deg)`, `Frequency (Hz, log scale)`; −3 dB shown as `not determined in sweep range` | **PASS** |
+| B5 · Transient | Select `.tran`, 10 mV peak / 1 kHz | Vin/Vout vs time with units; phase direction from samples | 108 points, **0.000–5.000 ms**, Vin pp **0.020 V**, Vout pp **0.035 V**; phase from sampled correlation **inverted (~180°), correlation −1.00**; SVG labels `Time (ms)`, `Vin (V)`, `Vout (V)` | **PASS** |
+| B6 · Change source | Change amplitude 10 mV → 50 mV, rerun `.tran` | Waveform and measured values change, not hard-coded | Vin pp **0.020 → 0.100 V**, Vout pp **0.035 → 0.174 V**; SVG polyline coordinates changed; new run id issued | **PASS** |
 | B7 · Invalid / fail | Set RE = 0 and submit | Error, no success state, no stale graph | Error box: `Run failed — no results shown: RE must be > 0 and <= 1e+07`; `plot-svg` count **0**; `ngspice run completed` **absent**; HTTP 400 | **PASS** |
-| B8 · UI | Inspect simulator at desktop and 390 px viewport, then run AC | Readable controls, plots and units; no clipped content | **Desktop 1296 × 841**: grid `477.8px 729.2px`, `scrollWidth 1281 = clientWidth 1281` (no horizontal overflow), button visible. **Phone**: real 390 px layout viewport created with an iframe (`docs/evidence/mobile-viewport-check.html`) because OpenCode Browser has no device-emulation control; inside the frame `innerWidth 390` → `clientWidth 375` after scrollbar, `scrollWidth 375`, `matchMedia('(max-width:520px)').matches = true`, grid collapses to **one 362 px column**, button visible. AC run inside the frame completed (`lab04-ac-76d4hbd3`) and the Bode SVG rendered at **299 × 205 px** with labels `|Gain| (dB)`, `Phase (deg)`, `Frequency (Hz, log scale)` | **PASS (desktop + 390 px CSS viewport)** |
+| B8 · UI | Inspect the redesigned simulator at 1296 px and 390 px CSS viewports, then run | Three readable blocks, controls, plots and units; no clipped content | **Desktop 1296 × 841** via `docs/evidence/desktop-viewport-check.html`: `innerWidth 1296`, `clientWidth 1281` after scrollbar, `scrollWidth 1281` (no horizontal overflow), grid `357.9px 511.3px 323.8px` (three columns), button visible, both plots and three tables rendered. **Phone**: real 390 px layout viewport via `docs/evidence/mobile-viewport-check.html`; `innerWidth 390` → `clientWidth 375` after scrollbar, `scrollWidth 375`, `matchMedia('(max-width:520px)').matches = true`, grid collapsed to **one 347 px column**, both SVGs rendered at **299 × 205 px**, button visible | **PASS (desktop + 390 px CSS viewport)** |
 
-Phone verification used a real 390 px iframe layout viewport in Chromium, so the CSS media
-queries and grid reflow were evaluated by the browser itself. It is **not** Playwright MCP
-device emulation; that tool remains NOT RUN. Screenshots: `docs/evidence/B8-desktop-1296.png`
-and `docs/evidence/B8-mobile-390.png`.
+Phone and desktop verification used real CSS layout viewports in Chromium iframes because
+OpenCode Browser has no device-emulation control. It is **not** Playwright MCP device
+emulation; that tool remains NOT RUN. Screenshots of the redesigned page:
+`docs/evidence/B8-handout-layout-desktop-1296.png` and
+`docs/evidence/B8-handout-layout-mobile-390.png`.
 
-Screenshots: `docs/evidence/B1-lab3-regression.png`, `B2-dc-spice.png`,
+Earlier screenshots: `docs/evidence/B1-lab3-regression.png`, `B2-dc-spice.png`,
 `B3-change-re.png`, `B4-ac-bode.png`, `B5-transient.png`, `B6-change-source.png`,
 `B7-invalid-re.png`. Real engine artifacts for the test model are in
 `docs/evidence/ce-test-model/` (`dc/ac/tran-circuit.cir`, `-run.log`, `-run.raw`), and
@@ -111,11 +133,13 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 | --- | --- | --- | --- |
 | Baseline regression | `.venv\Scripts\python.exe -m pytest tests/ -q` before any app change | **23 passed** | **PASS** |
 | Full suite after implementation | same command | **51 passed** (23 Lab 03 + 28 Lab 04) | **PASS** |
+| Full suite after handout-layout redesign | same command | **52 passed** (23 Lab 03 + 29 Lab 04; new test checks the three blocks, both plots and all three tables) | **PASS** |
 | Engine failure path | route test monkeypatch raising `SpiceEngineError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | Parse failure path | route test monkeypatch raising `SpiceParseError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | No stale result after a failure | successful AC POST then `RE = 0` POST in the same client | SVG disappears, error remains | **PASS** |
 | Injected model | route test with `QTEST` and unit tests with `QTEST` | Netlist and page show `QTEST`; no engineer model is stored in source | **PASS** |
 | `RE >= 0` Lab 03 vs `RE > 0` SPICE | unit tests on both validators | Divider still accepts 0 Ω; SPICE rejects it | **PASS** |
+| Illustrative layout vs real data | route test counts `plot-svg` elements after a run and browser checks SVG point labels | Exactly two SVGs, both generated from parsed ngspice arrays; no constant/hard-coded trace | **PASS** |
 
 ## Limitations
 
@@ -123,7 +147,9 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
   claimed until the Starter Kit model is supplied.
 - The −3 dB crossing was outside the simulated sweep for the test model and is reported as
   `not determined in sweep range`, not guessed.
-- Playwright MCP device emulation remains NOT RUN; B8 mobile was checked in a real 390 px
-  iframe layout viewport instead, as recorded above.
+- Playwright MCP device emulation remains NOT RUN; B8 used real 1296 px and 390 px CSS
+  iframe layout viewports instead, as recorded above.
+- Impeccable remains NOT RUN because Node/npx is unavailable after the cancelled
+  administrator prompt.
 - All `run.log` excerpts and raw files listed above were produced by ngspice-47 in batch
   mode; no trace was generated from constants or hand-drawn points.

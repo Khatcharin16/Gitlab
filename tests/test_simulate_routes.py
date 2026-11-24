@@ -121,3 +121,18 @@ def test_failed_post_after_success_does_not_keep_old_plot(client, fake_engine):
     failed = client.post("/simulate", data={**BASE_FORM, "analysis": "ac", "re": "0"})
     assert failed.status_code == 400
     assert b"plot-svg" not in failed.data
+
+
+def test_handout_three_blocks_and_both_real_plots(client, fake_engine):
+    """A run fills the handout layout: two plots plus all three result tables."""
+    resp = client.post("/simulate", data=BASE_FORM)
+    assert resp.status_code == 200
+    for heading in (b"Circuit &amp; Parameters", b"Simulation &amp; Plots",
+                    b"Engineering Results"):
+        assert heading in resp.data
+    assert b"Bode response" in resp.data
+    assert b"Input / Output waveforms" in resp.data
+    assert resp.data.count(b'class="plot-svg"') == 2
+    for label in (b"DC Operating Point", b"AC Frequency Response",
+                  b"Transient Response"):
+        assert label in resp.data

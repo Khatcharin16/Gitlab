@@ -133,7 +133,11 @@ the matching interpreter in `.venv/bin/`.
 Open:
 
 - <http://127.0.0.1:5000> — Lab 03 analytical DC bias calculator
-- <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator
+- <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator, laid out as
+  the handout's three blocks: **Circuit & Parameters**, **Simulation & Plots**,
+  and **Engineering Results**. The two plots use an illustrative handout layout
+  but are drawn only from parsed ngspice data. A run performs real `.op`, `.ac`
+  and `.tran` batches so both plots and all three result tables are filled.
 
 For a non-reloading server (used for browser acceptance):
 
@@ -182,8 +186,9 @@ unless ngspice exits 0 and its raw file parses successfully.
 .venv\Scripts\python.exe -m pytest tests/ -q
 ```
 
-Expected: **51 passed** (23 Lab 03 + 28 Lab 04). Lab 04 adds adapter, parser,
-plot and route tests; browser acceptance is recorded in
+Expected: **52 passed** (23 Lab 03 + 29 Lab 04). Lab 04 adds adapter, parser,
+plot and route tests, including a check for the three handout blocks, both plots
+and all three result tables. Browser acceptance is recorded in
 [`docs/validation.md`](docs/validation.md).
 
 ## Project layout
@@ -197,7 +202,7 @@ app/
   plots.py          Lab 04: inline SVG Bode and waveform plots from parsed arrays
   templates/        index.html (Lab 03) and simulate.html (Lab 04)
   static/           Shared styles
-tests/              51 pytest tests (23 Lab 03 + 28 Lab 04)
+tests/              52 pytest tests (23 Lab 03 + 29 Lab 04)
 docs/validation.md  A1–A5 and B1–B8 acceptance evidence
 docs/evidence/      Screenshots and real ngspice log/raw samples
 ```
@@ -225,7 +230,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, sampled inversion correlation −1.00 | PASS |
 | B6 | Amplitude 10 → 50 mV changed Vin pp 0.020 → 0.100 V | PASS |
 | B7 | RE = 0 → error, no plot, no Success state | PASS |
-| B8 | 1296 × 841 desktop and 390 px CSS viewport: one column, no overflow, AC plot renders | PASS |
+| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no overflow; both plots and three tables render | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

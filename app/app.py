@@ -409,7 +409,9 @@ def spice_status() -> dict[str, str]:
 
 
 def render_simulate(analysis: str, form_values: dict, result: dict | None,
-                    plot: str | None, error_messages: list[str],
+                    all_results: dict[str, dict] | None,
+                    plot_by_mode: dict[str, str] | None,
+                    error_messages: list[str],
                     status: int = 200):
     """Render the simulator page.  Failures never receive a result or plot."""
     return render_template(
@@ -418,16 +420,15 @@ def render_simulate(analysis: str, form_values: dict, result: dict | None,
         analysis_label=ANALYSIS_LABELS.get(analysis, f"Unknown '{analysis}'"),
         form_values=form_values,
         result=result,
-        plot=plot,
+        results=all_results,
+        plots=plot_by_mode,
         error_messages=error_messages,
         status=spice_status(),
     ), status
 
 
-def _run_spice(analysis: str, values: dict) -> tuple[dict, str]:
+def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple[dict, str]:
     """Execute one real batch run and build the template context from it."""
-    banner = se.check_engine()
-    model_line = se.get_model_line()
     netlist = se.build_netlist(analysis, values, model_line=model_line)
     run = se.run_ngspice(analysis, netlist)
     se.ensure_success(run)
@@ -515,10 +516,21 @@ def _run_spice(analysis: str, values: dict) -> tuple[dict, str]:
     return result, plot
 
 
+def _run_spice(analysis: str, values: dict) -> tuple[dict, dict[str, dict], dict[str, str]]:
+    """Run all three real analyses so both plots and all result cards are real."""
+    banner = se.check_engine()
+    model_line = se.get_model_line()
+    results: dict[str, dict] = {}
+    plot_by_mode: dict[str, str] = {}
+    for mode in ("dc", "ac", "tran"):
+        results[mode], plot_by_mode[mode] = _analyse(mode, banner, model_line, values)
+    return results[analysis], results, plot_by_mode
+
+
 @app.get("/simulate")
 def simulate_page():
     """Show the CE amplifier form with engine/model status, but no results."""
-    return render_simulate("dc", default_spice_form(), None, None, [])
+    return render_simulate("dc", default_spice_form(), None, None, None, [])
 
 
 @app.post("/simulate")
@@ -529,22 +541,22 @@ def simulate_run():
 
     if analysis not in se.ANALYSIS_MODES:
         return render_simulate(
-            analysis, display, None, None,
+            analysis, display, None, None, None,
             [f"Unknown analysis '{analysis}'. Use dc, ac, or tran."], 400,
         )
 
     ok, messages = se.validate_spice_inputs({**values, "analysis": analysis})
     if not ok:
-        return render_simulate(analysis, display, None, None, messages, 400)
+        return render_simulate(analysis, display, None, None, None, messages, 400)
 
     try:
-        result, plot = _run_spice(analysis, values)
+        selected, results, plot_by_mode = _run_spice(analysis, values)
     except se.SpiceValidationError as exc:
-        return render_simulate(analysis, display, None, None, [str(exc)], 400)
+        return render_simulate(analysis, display, None, None, None, [str(exc)], 400)
     except se.SpiceError as exc:
-        return render_simulate(analysis, display, None, None, [str(exc)], 502)
+        return render_simulate(analysis, display, None, None, None, [str(exc)], 502)
 
-    return render_simulate(analysis, display, result, plot, [])
+    return render_simulate(analysis, display, selected, results, plot_by_mode, [])
 
 
 # ---------------------------------------------------------------------------
