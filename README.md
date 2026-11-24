@@ -88,7 +88,9 @@ The student's verification for Lab 04:
 - checked the netlist and `run.log` in `docs/evidence/ce-test-model/`, and inspected
   the `i(vic)` column in the regenerated parser fixture,
 - compared DC values after changing only RE and transient traces after changing
-  both source amplitude and frequency in the browser,
+  both source amplitude and frequency in the browser, and corrected the transient
+  display to plot each parsed trace about its own mean so the 20–35 mV sine is
+  visible while absolute values stay in the table,
 - confirmed that one submit runs only the selected analysis, with the other cards
   and plots explicitly marked `Not run in this mode`,
 - confirmed `RE = 0` and engine/parse failures show errors without a chart,
@@ -207,10 +209,10 @@ unless ngspice exits 0 and its raw file parses successfully.
 .venv\Scripts\python.exe -m pytest tests/ -q
 ```
 
-Expected: **53 passed** (23 Lab 03 + 30 Lab 04). Lab 04 adds adapter, parser,
+Expected: **54 passed** (23 Lab 03 + 31 Lab 04). Lab 04 adds adapter, parser,
 plot and route tests, including checks for the three handout blocks,
 selected-mode dispatch, `VIC`-based IC, midband −3 dB calculation, legends,
-sample tables and all three result cards. Browser acceptance is recorded in
+sample tables, the AC-centred transient waveform view and all three result cards. Browser acceptance is recorded in
 [`docs/validation.md`](docs/validation.md).
 
 ## Project layout
@@ -224,7 +226,7 @@ app/
   plots.py          Lab 04: inline SVG Bode and waveform plots from parsed arrays
   templates/        index.html (Lab 03) and simulate.html (Lab 04)
   static/           Shared styles and simulate.js (Running/button state only)
-tests/              53 pytest tests (23 Lab 03 + 30 Lab 04)
+tests/              54 pytest tests (23 Lab 03 + 31 Lab 04)
 docs/validation.md  A1–A5 and B1–B8 acceptance evidence
 docs/evidence/      Screenshots and real ngspice log/raw samples
 ```
@@ -249,7 +251,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B2 | `.op` values from `i(vic)`, model source and `Success (1/1)` shown from real run | PASS (model gate open) |
 | B3 | RE 1 → 2 kΩ changed IC 1.26 → 0.69 mA | PASS |
 | B4 | AC Bode axes/units, 141 parsed points, midband −3 dB at 1.31 Hz | PASS |
-| B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00 | PASS |
+| B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
 | B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
 | B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no page overflow; selected plot, fixture summary, sample tables and three result cards render; Impeccable detector clean after CSS polish | PASS |

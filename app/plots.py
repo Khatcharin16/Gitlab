@@ -180,8 +180,16 @@ def bode_svg(frequency_hz: list[float], gain_db: list[float],
 
 
 def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
-                 *, width: int = 760, height: int = 360) -> str:
-    """Vin / Vout overlay from a ``.tran`` run."""
+                 *, width: int = 760, height: int = 360,
+                 remove_dc: bool = True) -> str:
+    """Vin / Vout overlay from a ``.tran`` run.
+
+    By default each trace is plotted about its own mean in mV.  A CE stage sits
+    at a large DC level (about 1.3 V at the base and 9 V at the collector), so
+    an absolute shared Y scale makes a 10–40 mV sine look flat.  Removing the
+    mean is a display transform only: the absolute values remain in the result
+    and sample tables.
+    """
     lines = _svg_open(width, height, "Vin at v(base) and Vout at v(out) from real .tran run")
     if not time_ms or not vin or not vout:
         lines.append(_text(width / 2, height / 2, "No transient data",
@@ -189,14 +197,26 @@ def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
         lines.append("</svg>")
         return "\n".join(lines)
 
+    if remove_dc:
+        mean_in = sum(vin) / len(vin)
+        mean_out = sum(vout) / len(vout)
+        plot_vin = [(value - mean_in) * 1e3 for value in vin]
+        plot_vout = [(value - mean_out) * 1e3 for value in vout]
+        unit = "mV"
+        view_note = "AC view: trace − own mean (mV); absolute values in table."
+    else:
+        plot_vin, plot_vout = list(vin), list(vout)
+        unit = "V"
+        view_note = "Absolute node voltages from the .tran run."
+
     left, right, top, bottom = 64, 22, 30, 52
     plot_width = width - left - right
     plot_height = height - top - bottom
     xmin, xmax = min(time_ms), max(time_ms)
     if xmax == xmin:
         xmax = xmin + 1.0
-    low = min(min(vin), min(vout))
-    high = max(max(vin), max(vout))
+    low = min(min(plot_vin), min(plot_vout))
+    high = max(max(plot_vin), max(plot_vout))
     padding = max((high - low) * 0.1, 0.01)
     low, high = low - padding, high + padding
 
@@ -230,11 +250,11 @@ def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
         )
         lines.append(
             _text(left - 7, y_pos + 3,
-                  f"{high - tick * (high - low) / 4:.2f}",
+                  f"{high - tick * (high - low) / 4:.2f} {unit}",
                   anchor="end", size=10)
         )
 
-    for values, colour in ((vin, TEAL), (vout, ORANGE)):
+    for values, colour in ((plot_vin, TEAL), (plot_vout, ORANGE)):
         points = " ".join(f"{x_of(t):.1f},{y_of(v):.1f}"
                           for t, v in zip(time_ms, values))
         lines.append(
@@ -246,5 +266,6 @@ def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
                        "Time (ms)", anchor="middle", size=12))
     lines.append(_text(left + 8, top + 14, "Vin = v(base) (V)", size=12, fill=TEAL))
     lines.append(_text(left + 150, top + 14, "Vout = v(out) (V)", size=12, fill=ORANGE))
+    lines.append(_text(left + 8, top + 30, view_note, size=10, fill=TEXT))
     lines.append("</svg>")
     return "\n".join(lines)

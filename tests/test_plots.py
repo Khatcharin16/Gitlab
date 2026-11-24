@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from app import plots
@@ -57,3 +59,18 @@ def test_waveform_svg_contains_both_legends_and_changes_with_data():
     assert "Time (ms)" in first
     assert "Vin = v(base) (V)" in first and "Vout = v(out) (V)" in first
     assert first != second
+
+
+def test_waveform_svg_shows_small_ac_ripple_on_large_dc_offset():
+    # A CE stage has a large DC level; an absolute shared scale would flatten
+    # a 10-20 mV sine almost completely.  The AC view must keep it readable.
+    time = [i / 10 for i in range(20)]
+    vin = [1.30, 1.31, 1.30, 1.29] * 5
+    vout = [9.20, 9.18, 9.20, 9.22] * 5
+    svg = plots.waveform_svg(time, vin, vout)
+
+    assert "AC view: trace − own mean (mV)" in svg
+    assert "mV" in svg
+    points = re.search(r'<polyline points="([^"]+)"', svg).group(1)
+    ys = [float(pair.split(",")[1]) for pair in points.split()]
+    assert max(ys) - min(ys) > 80
