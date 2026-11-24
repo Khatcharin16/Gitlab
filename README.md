@@ -69,16 +69,25 @@ AI (OpenCode) also helped with the Lab 04 additions:
 
 - designing the `/simulate` route and the ngspice adapter/ASCII raw parser,
 - the injected model configuration and the no-fake-result error paths,
-- the inline SVG Bode/waveform plots and the B1–B8 evidence notes.
+- the inline SVG Bode/waveform plots and the B1–B8 evidence notes,
+- the final handout-fidelity audit: `VIC`/`i(vic)` collector current, midband
+  referenced −3 dB calculation, selected-mode dispatch, Running/Success/Error
+  states, node-labelled legends, fixture summary, sample tables, and mobile
+  horizontal plot scrolling.
 
 The student's verification for Lab 04:
 
 - confirmed the exact engine banner, batch flags and ASCII raw format from a real
   ngspice run (`docs/evidence/spice-sample/`),
-- checked the netlist and `run.log` in `docs/evidence/ce-test-model/`,
+- checked the netlist and `run.log` in `docs/evidence/ce-test-model/`, and inspected
+  the `i(vic)` column in the regenerated parser fixture,
 - compared DC values after changing only RE and transient traces after changing
-  only the source amplitude in the browser,
+  both source amplitude and frequency in the browser,
+- confirmed that one submit runs only the selected analysis, with the other cards
+  and plots explicitly marked `Not run in this mode`,
 - confirmed `RE = 0` and engine/parse failures show errors without a chart,
+- checked Running/aria-busy state, model source label, Bode −3 dB reference and
+  desktop 1296 px / phone 390 px CSS layouts,
 - reviewed `git diff` and `git diff --staged` before committing.
 
 Code locations:
@@ -135,9 +144,12 @@ Open:
 - <http://127.0.0.1:5000> — Lab 03 analytical DC bias calculator
 - <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator, laid out as
   the handout's three blocks: **Circuit & Parameters**, **Simulation & Plots**,
-  and **Engineering Results**. The two plots use an illustrative handout layout
-  but are drawn only from parsed ngspice data. A run performs real `.op`, `.ac`
-  and `.tran` batches so both plots and all three result tables are filled.
+  and **Engineering Results**. It shows the handout fixture summary, unit
+  selectors, a `Running…` state, `Success (1/1)` / `Error` banners, per-mode
+  sample tables, and `Not run in this mode` placeholders. The Bode and waveform
+  panels use an illustrative handout layout but are drawn only from parsed
+  ngspice data. Following the handout flowchart, one submit dispatches just the
+  selected real analysis: DC → `.op`, AC → `.ac`, or Transient → `.tran`.
 
 For a non-reloading server (used for browser acceptance):
 
@@ -186,9 +198,10 @@ unless ngspice exits 0 and its raw file parses successfully.
 .venv\Scripts\python.exe -m pytest tests/ -q
 ```
 
-Expected: **52 passed** (23 Lab 03 + 29 Lab 04). Lab 04 adds adapter, parser,
-plot and route tests, including a check for the three handout blocks, both plots
-and all three result tables. Browser acceptance is recorded in
+Expected: **53 passed** (23 Lab 03 + 30 Lab 04). Lab 04 adds adapter, parser,
+plot and route tests, including checks for the three handout blocks,
+selected-mode dispatch, `VIC`-based IC, midband −3 dB calculation, legends,
+sample tables and all three result cards. Browser acceptance is recorded in
 [`docs/validation.md`](docs/validation.md).
 
 ## Project layout
@@ -201,8 +214,8 @@ app/
   spice_engine.py   Lab 04: config, validation, netlist, ngspice run, ASCII parser
   plots.py          Lab 04: inline SVG Bode and waveform plots from parsed arrays
   templates/        index.html (Lab 03) and simulate.html (Lab 04)
-  static/           Shared styles
-tests/              52 pytest tests (23 Lab 03 + 29 Lab 04)
+  static/           Shared styles and simulate.js (Running/button state only)
+tests/              53 pytest tests (23 Lab 03 + 30 Lab 04)
 docs/validation.md  A1–A5 and B1–B8 acceptance evidence
 docs/evidence/      Screenshots and real ngspice log/raw samples
 ```
@@ -224,13 +237,13 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | Case | Observed | Result |
 | --- | --- | --- |
 | B1 | Lab 03 values unchanged in all three modes | PASS |
-| B2 | `.op` values, model and run status shown from real run | PASS (model gate open) |
-| B3 | RE 1 → 2 kΩ changed IC 1.36 → 0.79 mA | PASS |
-| B4 | AC Bode axes/units, 141 parsed points | PASS |
-| B5 | `.tran` at 10 mV / 1 kHz, sampled inversion correlation −1.00 | PASS |
-| B6 | Amplitude 10 → 50 mV changed Vin pp 0.020 → 0.100 V | PASS |
-| B7 | RE = 0 → error, no plot, no Success state | PASS |
-| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no overflow; both plots and three tables render | PASS |
+| B2 | `.op` values from `i(vic)`, model source and `Success (1/1)` shown from real run | PASS (model gate open) |
+| B3 | RE 1 → 2 kΩ changed IC 1.26 → 0.69 mA | PASS |
+| B4 | AC Bode axes/units, 141 parsed points, midband −3 dB at 1.31 Hz | PASS |
+| B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00 | PASS |
+| B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
+| B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
+| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no page overflow; selected plot, fixture summary, sample tables and three result cards render | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

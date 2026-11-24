@@ -137,6 +137,22 @@ def fmt_voltage(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f} V"
 
 
+def fmt_small_voltage(v: float) -> str:
+    """Use mV for small AC amplitudes, as in the handout's 10 mV fixture."""
+    if abs(v) < 0.1:
+        return f"{v * 1e3:.2f} mV"
+    return fmt_voltage(v)
+
+
+def fmt_frequency(f: float) -> str:
+    """Readable frequency with an engineering unit."""
+    if f >= 1e6:
+        return f"{f / 1e6:g} MHz"
+    if f >= 1e3:
+        return f"{f / 1e3:g} kHz"
+    return f"{f:g} Hz"
+
+
 def fmt_resistor(v: float) -> str:
     """Human-readable resistance: 100 kΩ, 2.2 kΩ, 1.0 kΩ, 470 Ω."""
     if v >= 1e6:
@@ -147,6 +163,57 @@ def fmt_resistor(v: float) -> str:
         x, unit = v, "Ω"
     text = f"{x:.1f}" if x < 10 else f"{x:.0f}"
     return f"{text} {unit}"
+
+
+def _display_number(raw: object) -> str:
+    """Compact form value for the handout fixture summary."""
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return str(raw or "—")
+    if value == int(value) and abs(value) < 1e6:
+        return str(int(value))
+    return f"{value:g}"
+
+
+def fixture_summary(form: dict[str, str]) -> dict[str, str]:
+    """Reformat the current form as the handout's parameter fixture lines."""
+    def pair(key: str, unit_label: str) -> str:
+        unit = form.get(f"{key}_unit", "")
+        if unit_label == "resistance":
+            label = {"ohm": "Ω", "k": "kΩ", "M": "MΩ"}.get(unit, unit)
+        elif unit_label == "capacitance":
+            label = {"F": "F", "m": "mF", "u": "µF", "n": "nF", "p": "pF"}.get(unit, unit)
+        elif unit_label == "frequency":
+            label = {"Hz": "Hz", "kHz": "kHz", "MHz": "MHz"}.get(unit, unit)
+        else:
+            label = unit
+        return f"{_display_number(form.get(key))} {label}".strip()
+
+    source = (
+        f"{pair('amplitude', 'voltage')} · "
+        f"{pair('frequency', 'frequency')}"
+    )
+    return {
+        "vcc": pair("vcc", "voltage"),
+        "rc": pair("rc", "resistance"),
+        "r1": pair("r1", "resistance"),
+        "r2": pair("r2", "resistance"),
+        "re": pair("re", "resistance"),
+        "rl": pair("rl", "resistance"),
+        "cin": pair("cin", "capacitance"),
+        "cout": pair("cout", "capacitance"),
+        "source": source,
+    }
+
+
+def _sample_indices(count: int, wanted: int = 6) -> list[int]:
+    """Spread a small, deterministic set of real sample indices across a sweep."""
+    if count <= 0:
+        return []
+    if count <= wanted:
+        return list(range(count))
+    return sorted({round(i * (count - 1) / (wanted - 1)) for i in range(wanted)})
 
 
 # ---------------------------------------------------------------------------
@@ -419,10 +486,12 @@ def render_simulate(analysis: str, form_values: dict, result: dict | None,
         analysis=analysis,
         analysis_label=ANALYSIS_LABELS.get(analysis, f"Unknown '{analysis}'"),
         form_values=form_values,
+        fixture=fixture_summary(form_values),
         result=result,
         results=all_results,
         plots=plot_by_mode,
         error_messages=error_messages,
+        success_count=len(all_results or {}),
         status=spice_status(),
     ), status
 
@@ -457,6 +526,8 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
     rows: list[dict[str, str]] = []
     analytical: dict[str, str] | None = None
     plot = ""
+    sample_columns: list[str] = []
+    samples: list[dict[str, str]] = []
 
     if analysis == "dc":
         dc = se.parse_op(run.raw)
@@ -476,21 +547,32 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
     elif analysis == "ac":
         ac = se.parse_ac(run.raw)
         crossing = plots.minus_three_db(ac["frequency_hz"], ac["gain_db"])
+        reference = max(ac["gain_db"])
         rows = [
             {"label": "Sweep points", "value": str(len(ac["frequency_hz"]))},
             {"label": "Frequency range", "value": (
-                f"{ac['frequency_hz'][0]:.3g}–{ac['frequency_hz'][-1]:.3g} Hz")},
+                f"{fmt_frequency(ac['frequency_hz'][0])} – "
+                f"{fmt_frequency(ac['frequency_hz'][-1])}")},
             {"label": "Gain range", "value": (
-                f"{min(ac['gain_db']):.2f} to {max(ac['gain_db']):.2f} dB")},
-            {"label": "Gain at first point", "value": (
-                f"{ac['gain_db'][0]:.2f} dB")},
+                f"{min(ac['gain_db']):.2f} to {reference:.2f} dB")},
+            {"label": "Midband reference", "value": f"{reference:.2f} dB"},
+            {"label": "−3 dB target", "value": f"{reference - 3.0:.2f} dB"},
             {"label": "Phase at first point", "value": (
                 f"{ac['phase_deg'][0]:.1f} deg")},
             {"label": "−3 dB frequency", "value": (
-                f"{crossing:.0f} Hz" if crossing is not None
+                fmt_frequency(crossing) if crossing is not None
                 else "not determined in sweep range")},
         ]
         plot = plots.bode_svg(ac["frequency_hz"], ac["gain_db"], ac["phase_deg"])
+        sample_columns = ["Frequency", "|Gain| (dB)", "Phase (deg)"]
+        samples = [
+            {
+                "frequency": f"{ac['frequency_hz'][i]:.3g} Hz",
+                "gain": f"{ac['gain_db'][i]:.2f}",
+                "phase": f"{ac['phase_deg'][i]:.1f}",
+            }
+            for i in _sample_indices(len(ac["frequency_hz"]))
+        ]
     else:
         tran = se.parse_tran(run.raw)
         rows = [
@@ -498,18 +580,30 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
             {"label": "Time window", "value": (
                 f"{tran['time_ms'][0]:.3f}–{tran['time_ms'][-1]:.3f} ms")},
             {"label": "V<sub>in</sub> peak-to-peak", "value": (
-                f"{max(tran['vin']) - min(tran['vin']):.3f} V")},
+                fmt_small_voltage(max(tran["vin"]) - min(tran["vin"])))},
             {"label": "V<sub>out</sub> peak-to-peak", "value": (
-                f"{max(tran['vout']) - min(tran['vout']):.3f} V")},
+                fmt_small_voltage(max(tran["vout"]) - min(tran["vout"])))},
+            {"label": "Vin / Vout nodes", "value": "v(base) / v(out)"},
             {"label": "Phase (from samples)", "value": (
                 plots.phase_relation(tran["vin"], tran["vout"]))},
         ]
         plot = plots.waveform_svg(tran["time_ms"], tran["vin"], tran["vout"])
+        sample_columns = ["Time", "Vin", "Vout"]
+        samples = [
+            {
+                "time": f"{tran['time_ms'][i]:.3f} ms",
+                "vin": fmt_small_voltage(tran["vin"][i]),
+                "vout": fmt_small_voltage(tran["vout"][i]),
+            }
+            for i in _sample_indices(len(tran["time_ms"]))
+        ]
 
     result = {
         "analysis": analysis,
         "analysis_label": ANALYSIS_LABELS[analysis],
         "rows": rows,
+        "sample_columns": sample_columns,
+        "samples": samples,
         "analytical": analytical,
         "provenance": provenance,
     }
@@ -517,14 +611,11 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
 
 
 def _run_spice(analysis: str, values: dict) -> tuple[dict, dict[str, dict], dict[str, str]]:
-    """Run all three real analyses so both plots and all result cards are real."""
+    """Dispatch the selected analysis to the one real ngspice run it needs."""
     banner = se.check_engine()
     model_line = se.get_model_line()
-    results: dict[str, dict] = {}
-    plot_by_mode: dict[str, str] = {}
-    for mode in ("dc", "ac", "tran"):
-        results[mode], plot_by_mode[mode] = _analyse(mode, banner, model_line, values)
-    return results[analysis], results, plot_by_mode
+    result, plot = _analyse(analysis, banner, model_line, values)
+    return result, {analysis: result}, {analysis: plot}
 
 
 @app.get("/simulate")

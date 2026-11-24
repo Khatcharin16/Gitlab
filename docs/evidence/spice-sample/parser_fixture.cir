@@ -1,9 +1,11 @@
 * Parser fixture only: resistor network with the same node names as the CE netlist.
 * This is NOT a transistor result and NOT an instructor model.
+* VIC is a 0 V sense source so i(vic) exercises the collector-current column.
 VCC vcc 0 DC 12
 R1 vcc base 100k
 R2 base 0 22k
-RC vcc collector 2.2k
+VIC vcc rctop DC 0
+RC rctop collector 2.2k
 RE emitter 0 1k
 RBE base emitter 10k
 RCE collector emitter 100k

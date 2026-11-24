@@ -5,6 +5,7 @@
   <title>Lab 04: BJT CE Amplifier Simulator — ENG29 2121</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='simulate.js') }}" defer></script>
 </head>
 <body>
 {% set resistance_units = [('ohm', 'Ω'), ('k', 'kΩ'), ('M', 'MΩ')] %}
@@ -23,6 +24,18 @@
     {% endfor %}
   </select>
 </div>
+{% endmacro %}
+{% macro sample_table(result) %}
+{% if result.samples %}
+<table class="spice-table sample-table">
+  <thead><tr>{% for column in result.sample_columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for sample in result.samples %}
+    <tr>{% for value in sample.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 {% endmacro %}
 
 <div class="page lab04-page">
@@ -115,6 +128,17 @@
         </svg>
         <figcaption>Reference CE voltage-divider stage from the Lab 04 handout.
           Schematic is a visual reference, not a circuit editor.</figcaption>
+        <div class="fixture-summary" aria-label="Current circuit fixture values">
+          <div><span>V<sub>CC</sub></span><b>{{ fixture.vcc }}</b>
+               <span>R<sub>C</sub></span><b>{{ fixture.rc }}</b></div>
+          <div><span>R<sub>1</sub></span><b>{{ fixture.r1 }}</b>
+               <span>R<sub>2</sub></span><b>{{ fixture.r2 }}</b></div>
+          <div><span>R<sub>E</sub></span><b>{{ fixture.re }}</b>
+               <span>R<sub>L</sub></span><b>{{ fixture.rl }}</b></div>
+          <div class="fixture-source"><span>Source</span><b>{{ fixture.source }}</b></div>
+          <div class="fixture-caps">C<sub>in</sub> {{ fixture.cin }} ·
+               C<sub>out</sub> {{ fixture.cout }}</div>
+        </div>
       </figure>
 
       <form id="spice-main-form" method="post" action="/simulate" class="spice-form param-form">
@@ -148,6 +172,9 @@
           </svg>
           Run Simulation
         </button>
+        <p id="running-status" class="run-status" role="status" aria-live="polite" hidden>
+          Running ngspice (<span id="running-mode">DC .op</span>) — please wait…
+        </p>
       </form>
 
       {% if error_messages %}
@@ -173,28 +200,39 @@
         </label>
         {% endfor %}
       </div>
-      <p class="plot-help">Select DC, AC or Transient, then press <strong>Run Simulation</strong>
-        in Circuit &amp; Parameters. Both graphs use the handout's illustrative layout,
-        drawn only from real ngspice data.</p>
+      <button class="btn-calc compact-run" type="submit" form="spice-main-form">
+        Run {{ analysis_label }}
+      </button>
+      <p class="plot-help">The selected analysis dispatches one real ngspice batch run:
+        DC → <code>.op</code>, AC → <code>.ac</code>, Transient → <code>.tran</code>.
+        Graphs use the handout's illustrative layout but contain only parsed run data.</p>
+      <p class="active-mode">Selected analysis: <strong>{{ analysis_label }}</strong> ·
+        other modes stay empty until you select them and run again.</p>
+      <p class="plot-help">AC sweep is fixed at 1 Hz – 10 MHz. Source Frequency sets the
+        <code>.tran</code> window; AC gain is |Vout/Vin| and does not scale with amplitude.</p>
 
       <figure class="plot-panel">
-        <figcaption><span class="plot-title">Bode response</span>
+        <figcaption><span class="plot-title">Bode response
+            <em>(illustrative layout)</em></span>
           <span class="plot-badge">real .ac data</span></figcaption>
         {% if plots and plots.get('ac') %}
         <div class="spice-plot">{{ plots['ac']|safe }}</div>
         {% else %}
         <div class="plot-empty">AC sweep not run yet — choose AC and press Run Simulation.</div>
         {% endif %}
+        <p class="plot-legend">|Gain| (teal) · Phase (orange) · Frequency (Hz, log scale)</p>
       </figure>
 
       <figure class="plot-panel">
-        <figcaption><span class="plot-title">Input / Output waveforms</span>
+        <figcaption><span class="plot-title">Input / Output waveforms
+            <em>(illustrative layout)</em></span>
           <span class="plot-badge">real .tran data</span></figcaption>
         {% if plots and plots.get('tran') %}
         <div class="spice-plot">{{ plots['tran']|safe }}</div>
         {% else %}
         <div class="plot-empty">Transient not run yet — choose Transient and press Run Simulation.</div>
         {% endif %}
+        <p class="plot-legend">Vin = v(base) (teal) / Vout = v(out) (orange) · Time (ms)</p>
       </figure>
     </section>
 
@@ -202,12 +240,31 @@
     <section class="card block-results" aria-labelledby="results-heading">
       <div class="card-head"><h2 id="results-heading">Engineering Results</h2></div>
 
+      {% if error_messages %}
+      <div class="status bad run-banner" role="alert">
+        <div><div class="status-title">Error — no results shown</div>
+          <div class="status-text">{% for msg in error_messages %}{{ msg }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
+      </div>
+      {% elif results %}
+      <div class="status ok run-banner" role="status">
+        <div><div class="status-title">Success — {{ result.provenance.directive }} completed (1/1)</div>
+          <div class="status-text">ngspice exit {{ result.provenance.returncode }} ·
+            {{ result.provenance.model_name }} ·
+            <code>{{ result.provenance.run_id }}</code></div></div>
+      </div>
+      {% else %}
+      <div class="status warn run-banner" role="status">
+        <div><div class="status-title">Ready — no analysis run yet</div>
+          <div class="status-text">Select DC, AC or Transient and press Run Simulation.</div></div>
+      </div>
+      {% endif %}
+
       <article class="result-block">
         <h3>DC Operating Point</h3>
-        <p class="result-fields">V<sub>B</sub> · V<sub>E</sub> · V<sub>C</sub> · V<sub>CE</sub></p>
+        <p class="result-fields">V<sub>B</sub> · V<sub>E</sub> · V<sub>C</sub> · V<sub>CE</sub> · I<sub>C</sub></p>
         {% if results and results.get('dc') %}
         <div class="status ok compact">
-          <div><div class="status-title">SPICE results · ngspice run completed (.op)</div>
+          <div><div class="status-title">SPICE results · .op completed</div>
             <div class="status-text">exit {{ results['dc'].provenance.returncode }} ·
               model {{ results['dc'].provenance.model_name }} ·
               <code>{{ results['dc'].provenance.run_id }}</code></div></div>
@@ -220,10 +277,13 @@
           </tbody>
         </table>
         {% if results['dc'].analytical %}
-        <p class="result-crosscheck">Analytical reference (Lab 3, separate model):
+        <p class="result-crosscheck"><strong>Analytical reference (Lab 3 — not SPICE):</strong>
           I<sub>C</sub> {{ results['dc'].analytical.ic }} ·
-          V<sub>CE</sub> {{ results['dc'].analytical.vce }}</p>
+          V<sub>CE</sub> {{ results['dc'].analytical.vce }}<br>
+          {{ results['dc'].analytical.note }}</p>
         {% endif %}
+        {% elif results %}
+        <p class="result-empty not-run">Not run in this mode — select DC and run again.</p>
         {% else %}<p class="result-empty">No DC run yet.</p>{% endif %}
       </article>
 
@@ -231,6 +291,11 @@
         <h3>AC Frequency Response</h3>
         <p class="result-fields">Gain / Phase / Frequency</p>
         {% if results and results.get('ac') %}
+        <div class="status ok compact">
+          <div><div class="status-title">SPICE results · .ac completed</div>
+            <div class="status-text">exit {{ results['ac'].provenance.returncode }} ·
+              <code>{{ results['ac'].provenance.run_id }}</code></div></div>
+        </div>
         <table class="spice-table result-table">
           <tbody>
           {% for row in results['ac'].rows %}
@@ -238,6 +303,9 @@
           {% endfor %}
           </tbody>
         </table>
+        {{ sample_table(results['ac']) }}
+        {% elif results %}
+        <p class="result-empty not-run">Not run in this mode — select AC and run again.</p>
         {% else %}<p class="result-empty">No AC run yet.</p>{% endif %}
       </article>
 
@@ -245,6 +313,11 @@
         <h3>Transient Response</h3>
         <p class="result-fields">V<sub>in</sub> / V<sub>out</sub> / Time</p>
         {% if results and results.get('tran') %}
+        <div class="status ok compact">
+          <div><div class="status-title">SPICE results · .tran completed</div>
+            <div class="status-text">exit {{ results['tran'].provenance.returncode }} ·
+              <code>{{ results['tran'].provenance.run_id }}</code></div></div>
+        </div>
         <table class="spice-table result-table">
           <tbody>
           {% for row in results['tran'].rows %}
@@ -252,11 +325,14 @@
           {% endfor %}
           </tbody>
         </table>
+        {{ sample_table(results['tran']) }}
+        {% elif results %}
+        <p class="result-empty not-run">Not run in this mode — select Transient and run again.</p>
         {% else %}<p class="result-empty">No transient run yet.</p>{% endif %}
       </article>
 
       <article class="engine-block">
-        <h3>Engine: ngspice</h3>
+        <h3>Engine readiness (configuration — not a run result)</h3>
         <p>Run status + model + units</p>
         <div class="spice-status compact-status" role="status">
           <div><span class="spice-status-key">Engine</span>

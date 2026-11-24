@@ -241,9 +241,11 @@ def build_netlist(analysis: str, values: dict[str, Any],
                   model_line: str | None = None) -> str:
     """Build the single reference CE voltage-divider netlist.
 
-    Node names are fixed: ``vcc``, ``base``, ``emitter``, ``collector``,
-    ``out``, ``vs`` and ground ``0``.  ``Vin`` is measured at ``base`` (after
-    ``Cin``) and ``Vout`` at ``out`` (across ``RL``).
+    Node names are fixed: ``vcc``, ``rctop``, ``base``, ``emitter``,
+    ``collector``, ``out``, ``vs`` and ground ``0``.  A 0 V source ``VIC``
+    sits in series with ``RC`` only so ``i(VIC)`` is the collector current;
+    ``i(VCC)`` would also include the divider current through ``R1``.
+    ``Vin`` is measured at ``base`` (after ``Cin``) and ``Vout`` at ``out``.
     """
     source = dict(values)
     source["analysis"] = analysis
@@ -264,7 +266,8 @@ def build_netlist(analysis: str, values: dict[str, Any],
         f"VCC vcc 0 DC {ngspice_number(float(source['vcc']))}",
         f"R1 vcc base {ngspice_number(float(source['r1']))}",
         f"R2 base 0 {ngspice_number(float(source['r2']))}",
-        f"RC vcc collector {ngspice_number(float(source['rc']))}",
+        "VIC vcc rctop DC 0",
+        f"RC rctop collector {ngspice_number(float(source['rc']))}",
         f"RE emitter 0 {ngspice_number(float(source['re']))}",
         f"Cin vs base {ngspice_number(float(source['cin']))}",
         f"Cout collector out {ngspice_number(float(source['cout']))}",
@@ -469,8 +472,9 @@ def parse_op(raw_text: str) -> dict[str, float]:
     vb = voltage("base")
     ve = voltage("emitter")
     vc = voltage("collector")
-    # IC leaves the VCC source's positive terminal, so i(vcc) is negative.
-    ic = -float(_column(section, "i(vcc)")[0].real)
+    # VIC is in series with RC only: i(VIC) is IC by its positive-terminal
+    # reference direction (vcc -> rctop -> RC -> collector).
+    ic = float(_column(section, "i(vic)")[0].real)
     return {
         "vb": vb, "ve": ve, "vc": vc, "vce": vc - ve, "ic": ic,
         "units": {"vb": "V", "ve": "V", "vc": "V", "vce": "V", "ic": "A"},

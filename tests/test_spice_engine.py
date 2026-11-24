@@ -71,6 +71,8 @@ def test_build_netlist_contains_dc_directive_and_injected_model():
     assert TEST_MODEL_LINE in netlist
     assert "Q1 collector base emitter QTEST" in netlist
     assert "VCC vcc 0 DC 12" in netlist
+    assert "VIC vcc rctop DC 0" in netlist
+    assert "RC rctop collector 2.2k" in netlist
     assert "Vs vs 0 AC 10m SIN(0 10m 1k)" in netlist
     assert netlist.rstrip().endswith(".end")
 
@@ -109,7 +111,7 @@ def test_parse_op_reads_operating_point_from_real_run():
     result = se.parse_op(raw)
     assert result["units"]["ic"] == "A"
     assert result["vce"] == pytest.approx(result["vc"] - result["ve"])
-    assert result["ic"] > 0  # -i(vcc) leaves the positive supply terminal
+    assert result["ic"] > 0  # i(vic) follows the collector branch only
     assert result["vb"] == result["vb"]  # finite
 
 

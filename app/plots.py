@@ -16,15 +16,27 @@ TEXT = "#486275"
 
 
 def minus_three_db(frequency_hz: list[float], gain_db: list[float]) -> float | None:
-    """Return the first −3 dB crossing frequency, or None if not in sweep."""
+    """Return the first −3 dB crossing below the midband reference.
+
+    The reference is the largest measured gain in the sweep, not absolute
+    0 dB.  When the target never crosses the trace, return ``None`` so the
+    caller can say "not determined in sweep range" instead of inventing a
+    number.
+    """
+    if len(gain_db) < 2:
+        return None
+    reference = max(gain_db)
+    target = reference - 3.0
     for index in range(1, len(gain_db)):
         previous, current = gain_db[index - 1], gain_db[index]
-        if previous >= -3.0 >= current:
+        if (previous - target) * (current - target) <= 0:
             if current == previous:
                 return frequency_hz[index]
-            ratio = (-3.0 - previous) / (current - previous)
-            return frequency_hz[index - 1] + ratio * (
-                frequency_hz[index] - frequency_hz[index - 1]
+            ratio = (target - previous) / (current - previous)
+            lower = max(frequency_hz[index - 1], 1e-12)
+            upper = max(frequency_hz[index], lower * 1.000001)
+            return 10 ** (
+                math.log10(lower) + ratio * (math.log10(upper) - math.log10(lower))
             )
     return None
 
@@ -57,10 +69,10 @@ def _scale(value: float, low: float, high: float, size: float) -> float:
     return (value - low) / (high - low) * size
 
 
-def _svg_open(width: int, height: int) -> list[str]:
+def _svg_open(width: int, height: int, label: str) -> list[str]:
     return [
         f'<svg class="plot-svg" viewBox="0 0 {width} {height}" '
-        f'role="img" aria-label="ngspice result plot" '
+        f'role="img" aria-label="{escape(label)}" '
         f'style="width:100%;height:auto">',
         f'<rect x="0" y="0" width="{width}" height="{height}" fill="#f9fcfd" '
         f'stroke="#dce7ee"/>',
@@ -79,7 +91,7 @@ def bode_svg(frequency_hz: list[float], gain_db: list[float],
              phase_deg: list[float], *, width: int = 760,
              height: int = 520) -> str:
     """Magnitude and phase panels from an ``.ac`` run."""
-    lines = _svg_open(width, height)
+    lines = _svg_open(width, height, "Bode magnitude and phase from real .ac run")
     if not frequency_hz or not gain_db or not phase_deg:
         lines.append(_text(width / 2, height / 2, "No AC data", anchor="middle"))
         lines.append("</svg>")
@@ -136,6 +148,21 @@ def bode_svg(frequency_hz: list[float], gain_db: list[float],
                 _text(left - 7, y_pos + 3, f"{value:.0f}", anchor="end", size=10)
             )
 
+        if panel == 0:
+            target = max(gain_db) - 3.0
+            if low <= target <= high:
+                y_ref = y_of(target, low, high, panel_top)
+                lines.append(
+                    f'<line x1="{left}" y1="{y_ref:.1f}" '
+                    f'x2="{left + plot_width}" y2="{y_ref:.1f}" '
+                    f'stroke="#a65a2c" stroke-width="1.2" stroke-dasharray="5 4"/>'
+                )
+                lines.append(
+                    _text(left + plot_width - 4, y_ref - 5,
+                          "−3 dB from midband", anchor="end", size=10,
+                          fill="#a65a2c")
+                )
+
         points = " ".join(
             f"{x_of(f):.1f},{y_of(v, low, high, panel_top):.1f}"
             for f, v in zip(frequency_hz, values)
@@ -155,7 +182,7 @@ def bode_svg(frequency_hz: list[float], gain_db: list[float],
 def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
                  *, width: int = 760, height: int = 360) -> str:
     """Vin / Vout overlay from a ``.tran`` run."""
-    lines = _svg_open(width, height)
+    lines = _svg_open(width, height, "Vin at v(base) and Vout at v(out) from real .tran run")
     if not time_ms or not vin or not vout:
         lines.append(_text(width / 2, height / 2, "No transient data",
                            anchor="middle"))
@@ -217,7 +244,7 @@ def waveform_svg(time_ms: list[float], vin: list[float], vout: list[float],
 
     lines.append(_text(left + plot_width / 2, height - 10,
                        "Time (ms)", anchor="middle", size=12))
-    lines.append(_text(left + 8, top + 14, "Vin (V)", size=12, fill=TEAL))
-    lines.append(_text(left + 92, top + 14, "Vout (V)", size=12, fill=ORANGE))
+    lines.append(_text(left + 8, top + 14, "Vin = v(base) (V)", size=12, fill=TEAL))
+    lines.append(_text(left + 150, top + 14, "Vout = v(out) (V)", size=12, fill=ORANGE))
     lines.append("</svg>")
     return "\n".join(lines)

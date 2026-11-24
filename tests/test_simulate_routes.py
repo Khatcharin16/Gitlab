@@ -63,7 +63,7 @@ def test_post_dc_success_shows_spice_and_analytical_separately(client, fake_engi
     resp = client.post("/simulate", data=BASE_FORM)
     assert resp.status_code == 200
     assert b"SPICE results" in resp.data
-    assert b"ngspice run completed" in resp.data
+    assert b".op completed" in resp.data
     assert b"QTEST" in resp.data
     assert b"tmp-fake-run" in resp.data
     assert b"Analytical reference" in resp.data
@@ -74,7 +74,7 @@ def test_post_re_zero_is_rejected_without_stale_result(client, fake_engine):
     resp = client.post("/simulate", data={**BASE_FORM, "re": "0"})
     assert resp.status_code == 400
     assert b"RE" in resp.data
-    assert b"ngspice run completed" not in resp.data
+    assert b".op completed" not in resp.data
     assert b"plot-svg" not in resp.data
 
 
@@ -86,7 +86,7 @@ def test_engine_missing_is_an_error_not_success(client, monkeypatch, fake_engine
     assert resp.status_code == 502
     assert b"ngspice not found" in resp.data
     assert b"plot-svg" not in resp.data
-    assert b"ngspice run completed" not in resp.data
+    assert b".op completed" not in resp.data
 
 
 def test_parse_failure_is_an_error_not_success(client, monkeypatch, fake_engine):
@@ -111,7 +111,7 @@ def test_tran_post_renders_waveform_svg_from_sample(client, fake_engine):
     resp = client.post("/simulate", data={**BASE_FORM, "analysis": "tran"})
     assert resp.status_code == 200
     assert b"Time (ms)" in resp.data
-    assert b"Vin (V)" in resp.data and b"Vout (V)" in resp.data
+    assert b"Vin = v(base) (V)" in resp.data and b"Vout = v(out) (V)" in resp.data
     assert b"plot-svg" in resp.data
 
 
@@ -123,8 +123,8 @@ def test_failed_post_after_success_does_not_keep_old_plot(client, fake_engine):
     assert b"plot-svg" not in failed.data
 
 
-def test_handout_three_blocks_and_both_real_plots(client, fake_engine):
-    """A run fills the handout layout: two plots plus all three result tables."""
+def test_handout_three_blocks_and_selected_mode_dispatch(client, fake_engine):
+    """One submit runs only the selected analysis; the other cards stay empty."""
     resp = client.post("/simulate", data=BASE_FORM)
     assert resp.status_code == 200
     for heading in (b"Circuit &amp; Parameters", b"Simulation &amp; Plots",
@@ -132,7 +132,18 @@ def test_handout_three_blocks_and_both_real_plots(client, fake_engine):
         assert heading in resp.data
     assert b"Bode response" in resp.data
     assert b"Input / Output waveforms" in resp.data
-    assert resp.data.count(b'class="plot-svg"') == 2
+    assert resp.data.count(b'class="plot-svg"') == 0  # DC has no time/frequency plot
     for label in (b"DC Operating Point", b"AC Frequency Response",
                   b"Transient Response"):
         assert label in resp.data
+    assert b"Not run in this mode" in resp.data
+    assert b"Success" in resp.data and b".op completed (1/1)" in resp.data
+
+    ac = client.post("/simulate", data={**BASE_FORM, "analysis": "ac"})
+    assert ac.data.count(b'class="plot-svg"') == 1
+    assert b"Not run in this mode" in ac.data
+    assert b"Success" in ac.data and b".ac dec 20 1 10meg completed (1/1)" in ac.data
+
+    tran = client.post("/simulate", data={**BASE_FORM, "analysis": "tran"})
+    assert tran.data.count(b'class="plot-svg"') == 1
+    assert b"Time (ms)" in tran.data

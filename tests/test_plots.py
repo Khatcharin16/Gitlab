@@ -12,9 +12,14 @@ GAIN = [20.0, 10.0, 0.0, -10.0, -20.0]
 PHASE = [-10.0, -40.0, -90.0, -140.0, -170.0]
 
 
-def test_minus_three_db_interpolates_between_samples():
+def test_minus_three_db_uses_midband_reference_and_log_interpolation():
+    # Midband reference is +20 dB, so the target is +17 dB between 10 and 100 Hz.
     crossing = plots.minus_three_db(FREQ, GAIN)
-    assert crossing == pytest.approx(3700.0)
+    assert crossing == pytest.approx(10 * 10 ** 0.3)
+
+
+def test_minus_three_db_never_invents_a_crossing_below_the_sweep():
+    assert plots.minus_three_db(FREQ, [5.0, 4.0, 3.0, 2.5, 2.2]) is None
 
 
 def test_minus_three_db_returns_none_when_not_crossed():
@@ -34,6 +39,7 @@ def test_bode_svg_contains_axes_and_data_points():
     assert "|Gain| (dB)" in svg and "Phase (deg)" in svg
     assert "<polyline" in svg
     assert "10k" in svg or "1e+04" in svg
+    assert "−3 dB from midband" in svg
 
 
 def test_bode_svg_changes_when_data_changes():
@@ -49,5 +55,5 @@ def test_waveform_svg_contains_both_legends_and_changes_with_data():
     second = plots.waveform_svg(time, [2.0, 0.0, -2.0, 0.0],
                                 [-1.0, 0.0, 1.0, 0.0])
     assert "Time (ms)" in first
-    assert "Vin (V)" in first and "Vout (V)" in first
+    assert "Vin = v(base) (V)" in first and "Vout = v(out) (V)" in first
     assert first != second
