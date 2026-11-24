@@ -214,8 +214,10 @@ screenshots are in `docs/validation.md` and `docs/evidence/`.
 
 ## Task 7 — Documentation and publication
 
-**Status:** README, validation notes, spec and plan are written. Git commit/push is the
-last step; the commit SHA and any push blocker must be reported honestly.
+**Status:** README, validation notes, spec and plan are written. Commit created:
+`734f3e3a65532c58ee9cadf6874cf8aa9b1fa45f` — "Add Lab 04 BJT CE amplifier simulator with
+real ngspice runs" (39 files). Push to `origin/main` was attempted with PortableGit; its
+outcome is recorded in the final report.
 
 - [ ] **Step 1:** Update README: `py` vs `python`, venv creation, ngspice installation/PATH,
   Starter model source, `py -m app.app`, `py -m pytest tests/ -q`, known tool limitations.
