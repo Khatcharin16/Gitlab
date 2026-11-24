@@ -1,0 +1,14 @@
+* Lab04 CE voltage-divider reference (real ngspice run)
+VCC vcc 0 DC 12
+R1 vcc base 100k
+R2 base 0 22k
+RC vcc collector 2.2k
+RE emitter 0 1k
+Cin vs base 10u
+Cout collector out 10u
+RL out 0 10k
+Q1 collector base emitter QTEST
+.model QTEST NPN(IS=1e-14 BF=100)
+Vs vs 0 AC 10m SIN(0 10m 1k)
+.tran 50u 5m 0 50u
+.end

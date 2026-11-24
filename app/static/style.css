@@ -647,3 +647,215 @@ input[type="number"] {
     gap: 14px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Lab 04 — ngspice simulator page
+   -------------------------------------------------------------------------- */
+.spice-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.spice-nav a {
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: #e8f1f7;
+  border: 1px solid #cfe1ec;
+  color: var(--navy-strong);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.spice-nav a.active {
+  background: var(--teal, #0c8176);
+  border-color: var(--teal, #0c8176);
+  color: #fff;
+}
+
+.spice-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(420px, 1.45fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.spice-status {
+  background: #f3f8fb;
+  border: 1px solid #d7e5ee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.88rem;
+  display: grid;
+  gap: 6px;
+}
+
+.spice-status > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.spice-status-key {
+  font-weight: 700;
+  color: #35536b;
+  min-width: 82px;
+}
+
+.spice-status code,
+.spice-provenance code,
+.spice-note code {
+  font-size: 0.84em;
+  overflow-wrap: anywhere;
+}
+
+.spice-status-msg {
+  margin: 2px 0 0;
+  color: #a4402d;
+  font-size: 0.84rem;
+}
+
+.spice-analysis-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 16px;
+}
+
+.spice-analysis-tab {
+  padding: 8px 14px;
+  border: 1px solid #bed3e1;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #35536b;
+  cursor: pointer;
+}
+
+.spice-analysis-tab input {
+  margin-right: 6px;
+  accent-color: #0c8176;
+}
+
+.spice-analysis-tab.active {
+  background: #e3f3f0;
+  border-color: #0c8176;
+  color: #07554e;
+}
+
+.spice-subhead {
+  margin: 18px 0 8px;
+  font-size: 1.02rem;
+  color: var(--navy-strong, #17324c);
+}
+
+.spice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.spice-table th,
+.spice-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2ebf1;
+  text-align: left;
+}
+
+.spice-table th {
+  width: 48%;
+  font-weight: 600;
+  color: #405e75;
+}
+
+.spice-table td {
+  font-weight: 700;
+  color: #12324a;
+}
+
+.spice-note {
+  font-size: 0.86rem;
+  color: #5b7186;
+  line-height: 1.5;
+}
+
+.spice-plot {
+  margin: 8px 0 4px;
+  border: 1px solid #dce7ee;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f9fcfd;
+}
+
+.spice-provenance {
+  margin-top: 18px;
+  border-top: 1px solid #e2ebf1;
+  padding-top: 12px;
+  font-size: 0.86rem;
+}
+
+.spice-provenance summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #0c8176;
+}
+
+.spice-provenance dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 5px 12px;
+  margin: 12px 0;
+}
+
+.spice-provenance dt {
+  font-weight: 700;
+  color: #405e75;
+}
+
+.spice-provenance dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.spice-provenance h4 {
+  margin: 12px 0 4px;
+  font-size: 0.88rem;
+  color: #405e75;
+}
+
+.spice-provenance pre {
+  margin: 0;
+  padding: 10px;
+  background: #f4f8fa;
+  border: 1px solid #e2ebf1;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1040px) {
+  .spice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .spice-status-key {
+    min-width: 0;
+  }
+
+  .spice-analysis-tab {
+    padding: 7px 10px;
+  }
+
+  .spice-table th {
+    width: 52%;
+  }
+}

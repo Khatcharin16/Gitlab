@@ -1,0 +1,17 @@
+* Parser fixture only: resistor network with the same node names as the CE netlist.
+* This is NOT a transistor result and NOT an instructor model.
+VCC vcc 0 DC 12
+R1 vcc base 100k
+R2 base 0 22k
+RC vcc collector 2.2k
+RE emitter 0 1k
+RBE base emitter 10k
+RCE collector emitter 100k
+Cin vs base 10u
+Cout collector out 10u
+RL out 0 10k
+Vs vs 0 AC 10m SIN(0 10m 1k)
+.op
+.ac dec 20 1 10meg
+.tran 50u 5m 0 50u
+.end

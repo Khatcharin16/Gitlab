@@ -1,8 +1,10 @@
-# ENG29 2121 — Lab 03: BJT DC Bias Web App
+# ENG29 2121 — Lab 03 DC Bias + Lab 04 CE Amplifier Simulator
 
 Flask web app for the DC operating point of a common-emitter BJT bias circuit.
 Lab 03 extends the Lab 02 voltage-divider calculator with **Fixed Bias** and
 **Emitter Bias** while keeping the original Divider result unchanged.
+Lab 04 adds a separate ngspice-driven DC / AC / transient simulator at
+`/simulate` without changing the Lab 03 routes or equations.
 
 - Repository: <https://github.com/Khatcharin16/Gitlab>
 - Lab 03 commits: `96857921949ed7b664054d0fc906f2dd27dcab76` (tabbed mode UI),
@@ -63,6 +65,22 @@ The student's verification:
   no stale results,
 - reviewed `git diff` and `git diff --staged` before committing.
 
+AI (OpenCode) also helped with the Lab 04 additions:
+
+- designing the `/simulate` route and the ngspice adapter/ASCII raw parser,
+- the injected model configuration and the no-fake-result error paths,
+- the inline SVG Bode/waveform plots and the B1–B8 evidence notes.
+
+The student's verification for Lab 04:
+
+- confirmed the exact engine banner, batch flags and ASCII raw format from a real
+  ngspice run (`docs/evidence/spice-sample/`),
+- checked the netlist and `run.log` in `docs/evidence/ce-test-model/`,
+- compared DC values after changing only RE and transient traces after changing
+  only the source amplitude in the browser,
+- confirmed `RE = 0` and engine/parse failures show errors without a chart,
+- reviewed `git diff` and `git diff --staged` before committing.
+
 Code locations:
 
 - **Mode selection:** `app/bjt.py` — `solve_bias()` dispatches to
@@ -100,48 +118,88 @@ VCE = VC − VE = 8.705 V
 
 ## Run the app
 
-From the repository root, using Python 3.10+:
+From the repository root on Windows:
 
-```bash
-python -m venv .venv
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-# macOS / Linux
-# source .venv/bin/activate
-
-python -m pip install -r requirements.txt
-python -m app.app
+```powershell
+py -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m app.app
 ```
 
-Then open <http://127.0.0.1:5000>.
+Use `py` / the venv interpreter — the bare `python` command is a broken Microsoft
+Store alias on this machine. On other platforms use `python3 -m venv .venv` and
+the matching interpreter in `.venv/bin/`.
 
-The lab-sheet style command also works:
+Open:
 
-```bash
-python -m flask --app app.app run
+- <http://127.0.0.1:5000> — Lab 03 analytical DC bias calculator
+- <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator
+
+For a non-reloading server (used for browser acceptance):
+
+```powershell
+.venv\Scripts\python.exe -c "from app.app import app; app.run(host='127.0.0.1', port=5000, debug=False)"
 ```
+
+## Lab 04 — ngspice setup
+
+The simulator needs the **console** build `ngspice_con.exe`; the GUI `ngspice.exe`
+produces no batch output. On this machine ngspice-47 (64-bit Windows 7z from the
+official SourceForge release) lives at:
+
+```text
+C:\Users\B6837006\AppData\Local\Temp\opencode\ngspice-47\Spice64\bin\ngspice_con.exe
+```
+
+Set these before starting Flask, or add that `bin` folder to `PATH`:
+
+```powershell
+$env:NGSPICE_BIN = "...\ngspice-47\Spice64\bin\ngspice_con.exe"
+$env:NGSPICE_MODEL_LINE = "<instructor .model line, one line>"
+$env:NGSPICE_MODEL_SOURCE = "Instructor Starter Kit"
+.venv\Scripts\python.exe -m app.app
+```
+
+`NGSPICE_MODEL_LINE` must be the instructor-verified `.model <name> NPN(...)`
+line. It is **not hard-coded** in the app; without it the page shows a config
+error and never invents a device. `NGSPICE_MODEL_SOURCE` is only a label shown
+in the UI/provenance. Browser evidence in `docs/validation.md` used a
+`TEST ONLY - not instructor verified` model, clearly labelled on the page.
+
+The adapter writes each netlist into its own temporary directory and runs:
+
+```text
+<ngspice_con.exe> -b -o run.log -r run.raw circuit.cir
+```
+
+The ASCII `run.raw` is parsed directly; AC values are `real,imag` pairs and
+transient values are real. `.tran` uses a positive TSTEP. No chart is drawn
+unless ngspice exits 0 and its raw file parses successfully.
 
 ## Tests
 
 ```bash
-python -m pytest tests/ -q
+.venv\Scripts\python.exe -m pytest tests/ -q
 ```
 
-Expected: **23 passed**. Lab 03 adds manual formula checks and browser
-acceptance checks instead of new unittest/Playwright scripts, as required by
-the lab sheet.
+Expected: **51 passed** (23 Lab 03 + 28 Lab 04). Lab 04 adds adapter, parser,
+plot and route tests; browser acceptance is recorded in
+[`docs/validation.md`](docs/validation.md).
 
 ## Project layout
 
 ```text
 app/
-  app.py            Flask routes, unit parsing, form/result context
+  app.py            Flask routes, unit parsing, Lab 03 context, /simulate
   bjt.py            Bias equations, mode dispatch, validation, warnings
   independent.py    Independent nodal solve (Divider cross-check)
-  templates/        Jinja dashboard (form, schematic, results)
-  static/           Dashboard styles
-tests/              23 existing pytest tests (Lab 02 behaviour preserved)
-docs/validation.md  A1–A5 and extra acceptance evidence
+  spice_engine.py   Lab 04: config, validation, netlist, ngspice run, ASCII parser
+  plots.py          Lab 04: inline SVG Bode and waveform plots from parsed arrays
+  templates/        index.html (Lab 03) and simulate.html (Lab 04)
+  static/           Shared styles
+tests/              51 pytest tests (23 Lab 03 + 28 Lab 04)
+docs/validation.md  A1–A5 and B1–B8 acceptance evidence
+docs/evidence/      Screenshots and real ngspice log/raw samples
 ```
 
 ## Lab 03 acceptance summary
@@ -155,3 +213,19 @@ docs/validation.md  A1–A5 and extra acceptance evidence
 | A5 | Fixed, RB = 0 | validation error | — | PASS |
 
 Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
+
+## Lab 04 acceptance summary (test-only model)
+
+| Case | Observed | Result |
+| --- | --- | --- |
+| B1 | Lab 03 values unchanged in all three modes | PASS |
+| B2 | `.op` values, model and run status shown from real run | PASS (model gate open) |
+| B3 | RE 1 → 2 kΩ changed IC 1.36 → 0.79 mA | PASS |
+| B4 | AC Bode axes/units, 141 parsed points | PASS |
+| B5 | `.tran` at 10 mV / 1 kHz, sampled inversion correlation −1.00 | PASS |
+| B6 | Amplitude 10 → 50 mV changed Vin pp 0.020 → 0.100 V | PASS |
+| B7 | RE = 0 → error, no plot, no Success state | PASS |
+| B8 | 1296 × 841 desktop no overflow; 390 px phone NOT RUN | PARTIAL |
+
+Full detail, engine version, model caveat and screenshots are in
+[`docs/validation.md`](docs/validation.md).

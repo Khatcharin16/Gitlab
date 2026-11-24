@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lab 04: BJT CE Amplifier Simulator — ENG29 2121</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="chip-icon" viewBox="0 0 64 64" fill="none" stroke="#0d7a8a"
+           stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <rect x="15" y="15" width="34" height="34" rx="5"/>
+        <rect x="25" y="25" width="14" height="14" rx="2"/>
+        <path d="M23 8v7M32 8v7M41 8v7M23 49v7M32 49v7M41 49v7
+                 M8 23h7M8 32h7M8 41h7M49 23h7M49 32h7M49 41h7"/>
+      </svg>
+      <div>
+        <h1>Lab 04: BJT CE Amplifier Simulator</h1>
+        <p class="subtitle">ENG29 2121 · real ngspice DC / AC / transient results</p>
+      </div>
+    </div>
+    <div class="course-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/>
+      </svg>
+      <span>Computer Programming for<br>Electrical Engineers</span>
+    </div>
+  </header>
+
+  <nav class="spice-nav" aria-label="Lab pages">
+    <a href="/">Lab 03 · DC Bias calculator</a>
+    <a href="/simulate" aria-current="page" class="active">Lab 04 · ngspice simulator</a>
+  </nav>
+
+  <main class="spice-grid">
+
+    <!-- ---------------------------------------------------------------- -->
+    <section class="card input-card">
+      <div class="card-head">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3
+                     1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5
+                     1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9
+                     1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1
+                     1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3
+                     1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5
+                     1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9
+                     1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+          </svg>
+        </span>
+        <h2>Reference CE circuit</h2>
+      </div>
+
+      <div class="spice-status" role="status">
+        <div><span class="spice-status-key">Engine</span>
+          <span class="badge {{ 'match' if status.engine_ready == 'yes' else 'delta' }}">
+            {{ status.engine_ready }}</span>
+          <code>{{ status.engine }}</code></div>
+        <div><span class="spice-status-key">BJT model</span>
+          <span class="badge {{ 'match' if status.model_ready == 'yes' else 'delta' }}">
+            {{ status.model_ready }}</span>
+          <code>{{ status.model }}</code></div>
+        <div><span class="spice-status-key">Model source</span>
+          <code>{{ status.model_source }}</code></div>
+        {% if status.message %}<p class="spice-status-msg">{{ status.message }}</p>{% endif %}
+      </div>
+
+      <form method="post" action="/simulate" class="spice-form">
+        <span class="mode-form-label">Analysis</span>
+        <div class="spice-analysis-tabs" role="group" aria-label="SPICE analysis">
+          {% for key in ['dc', 'ac', 'tran'] %}
+          <label class="spice-analysis-tab{% if analysis == key %} active{% endif %}">
+            <input type="radio" name="analysis" value="{{ key }}"
+                   {% if analysis == key %}checked{% endif %}>
+            {{ {'dc': 'DC .op', 'ac': 'AC .ac', 'tran': 'Transient .tran'}[key] }}
+          </label>
+          {% endfor %}
+        </div>
+
+        <div class="param-row">
+          <label for="vcc"><span class="sym">V<sub>CC</sub></span>
+            <span class="desc">(Supply)</span></label>
+          <input id="vcc" type="number" step="any" name="vcc"
+                 value="{{ form_values.vcc }}" required>
+          <select name="vcc_unit" aria-label="VCC unit">
+            <option value="V" {% if form_values.vcc_unit == 'V' %}selected{% endif %}>V</option>
+            <option value="mV" {% if form_values.vcc_unit == 'mV' %}selected{% endif %}>mV</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="r1"><span class="sym">R<sub>1</sub></span>
+            <span class="desc">(Upper divider)</span></label>
+          <input id="r1" type="number" step="any" name="r1"
+                 value="{{ form_values.r1 }}" required>
+          <select name="r1_unit" aria-label="R1 unit">
+            <option value="ohm" {% if form_values.r1_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.r1_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.r1_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="r2"><span class="sym">R<sub>2</sub></span>
+            <span class="desc">(Lower divider)</span></label>
+          <input id="r2" type="number" step="any" name="r2"
+                 value="{{ form_values.r2 }}" required>
+          <select name="r2_unit" aria-label="R2 unit">
+            <option value="ohm" {% if form_values.r2_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.r2_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.r2_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="rc"><span class="sym">R<sub>C</sub></span>
+            <span class="desc">(Collector)</span></label>
+          <input id="rc" type="number" step="any" name="rc"
+                 value="{{ form_values.rc }}" required>
+          <select name="rc_unit" aria-label="RC unit">
+            <option value="ohm" {% if form_values.rc_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.rc_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.rc_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="re"><span class="sym">R<sub>E</sub></span>
+            <span class="desc">(Emitter, must be &gt; 0)</span></label>
+          <input id="re" type="number" step="any" min="0" name="re"
+                 value="{{ form_values.re }}" required>
+          <select name="re_unit" aria-label="RE unit">
+            <option value="ohm" {% if form_values.re_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.re_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.re_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="rl"><span class="sym">R<sub>L</sub></span>
+            <span class="desc">(Load, after C<sub>out</sub>)</span></label>
+          <input id="rl" type="number" step="any" name="rl"
+                 value="{{ form_values.rl }}" required>
+          <select name="rl_unit" aria-label="RL unit">
+            <option value="ohm" {% if form_values.rl_unit == 'ohm' %}selected{% endif %}>Ω</option>
+            <option value="k" {% if form_values.rl_unit == 'k' %}selected{% endif %}>kΩ</option>
+            <option value="M" {% if form_values.rl_unit == 'M' %}selected{% endif %}>MΩ</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="cin"><span class="sym">C<sub>in</sub></span>
+            <span class="desc">(Input coupling)</span></label>
+          <input id="cin" type="number" step="any" name="cin"
+                 value="{{ form_values.cin }}" required>
+          <select name="cin_unit" aria-label="Cin unit">
+            <option value="p" {% if form_values.cin_unit == 'p' %}selected{% endif %}>pF</option>
+            <option value="n" {% if form_values.cin_unit == 'n' %}selected{% endif %}>nF</option>
+            <option value="u" {% if form_values.cin_unit == 'u' %}selected{% endif %}>µF</option>
+            <option value="m" {% if form_values.cin_unit == 'm' %}selected{% endif %}>mF</option>
+            <option value="F" {% if form_values.cin_unit == 'F' %}selected{% endif %}>F</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="cout"><span class="sym">C<sub>out</sub></span>
+            <span class="desc">(Output coupling)</span></label>
+          <input id="cout" type="number" step="any" name="cout"
+                 value="{{ form_values.cout }}" required>
+          <select name="cout_unit" aria-label="Cout unit">
+            <option value="p" {% if form_values.cout_unit == 'p' %}selected{% endif %}>pF</option>
+            <option value="n" {% if form_values.cout_unit == 'n' %}selected{% endif %}>nF</option>
+            <option value="u" {% if form_values.cout_unit == 'u' %}selected{% endif %}>µF</option>
+            <option value="m" {% if form_values.cout_unit == 'm' %}selected{% endif %}>mF</option>
+            <option value="F" {% if form_values.cout_unit == 'F' %}selected{% endif %}>F</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="amplitude"><span class="sym">V<sub>in</sub></span>
+            <span class="desc">(Source peak)</span></label>
+          <input id="amplitude" type="number" step="any" name="amplitude"
+                 value="{{ form_values.amplitude }}" required>
+          <select name="amplitude_unit" aria-label="Source amplitude unit">
+            <option value="V" {% if form_values.amplitude_unit == 'V' %}selected{% endif %}>V</option>
+            <option value="mV" {% if form_values.amplitude_unit == 'mV' %}selected{% endif %}>mV</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="frequency"><span class="sym">f</span>
+            <span class="desc">(Source frequency)</span></label>
+          <input id="frequency" type="number" step="any" name="frequency"
+                 value="{{ form_values.frequency }}" required>
+          <select name="frequency_unit" aria-label="Source frequency unit">
+            <option value="Hz" {% if form_values.frequency_unit == 'Hz' %}selected{% endif %}>Hz</option>
+            <option value="kHz" {% if form_values.frequency_unit == 'kHz' %}selected{% endif %}>kHz</option>
+            <option value="MHz" {% if form_values.frequency_unit == 'MHz' %}selected{% endif %}>MHz</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="beta"><span class="sym">β</span>
+            <span class="desc">(Analytical reference only)</span></label>
+          <input id="beta" type="number" step="any" name="beta"
+                 value="{{ form_values.beta }}" required>
+          <select name="beta_unit" aria-label="Beta unit">
+            <option value="-" selected>–</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <label for="vbe"><span class="sym">V<sub>BE</sub></span>
+            <span class="desc">(Analytical reference only)</span></label>
+          <input id="vbe" type="number" step="any" name="vbe"
+                 value="{{ form_values.vbe }}" required>
+          <select name="vbe_unit" aria-label="VBE unit">
+            <option value="V" {% if form_values.vbe_unit == 'V' %}selected{% endif %}>V</option>
+            <option value="mV" {% if form_values.vbe_unit == 'mV' %}selected{% endif %}>mV</option>
+          </select>
+        </div>
+
+        <button class="btn-calc" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 3v18l15-9L5 3z"/>
+          </svg>
+          Run {{ analysis|upper }} simulation
+        </button>
+      </form>
+
+      {% if error_messages %}
+      <div class="error-box" role="alert">
+        <strong>Run failed — no results shown:</strong>
+        <ul>
+        {% for msg in error_messages %}<li>{{ msg }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <section class="card results-card">
+      <div class="card-head">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19V5M4 19h16M7 15l4-5 3 3 5-7"/>
+          </svg>
+        </span>
+        <h2>SPICE results · {{ analysis_label }}</h2>
+      </div>
+
+      {% if result %}
+      <div class="status ok">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="11" fill="#1f9d4d"/>
+          <path d="M7 12.4l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <div class="status-title">ngspice run completed</div>
+          <div class="status-text">Real batch run (exit {{ result.provenance.returncode }}),
+            model <strong>{{ result.provenance.model_name }}</strong>,
+            run id <code>{{ result.provenance.run_id }}</code>.</div>
+        </div>
+      </div>
+
+      <h3 class="spice-subhead">Simulated values <span class="badge match">SPICE</span></h3>
+      <table class="spice-table">
+        <tbody>
+        {% for row in result.rows %}
+          <tr><th scope="row">{{ row.label|safe }}</th><td>{{ row.value }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      {% if result.analytical %}
+      <h3 class="spice-subhead">Cross-check
+        <span class="badge delta">Analytical reference</span></h3>
+      <table class="spice-table">
+        <tbody>
+          <tr><th scope="row">I<sub>C</sub> (Lab 3 model)</th>
+            <td>{{ result.analytical.ic }}</td></tr>
+          <tr><th scope="row">V<sub>CE</sub> (Lab 3 model)</th>
+            <td>{{ result.analytical.vce }}</td></tr>
+        </tbody>
+      </table>
+      <p class="spice-note">{{ result.analytical.note }}. SPICE and analytical
+        numbers are separate; neither overwrites the other.</p>
+      {% if analysis == 'dc' %}
+      <p class="spice-note">I<sub>C</sub> is reported as <code>-i(vcc)</code>, i.e.
+        current leaving the positive supply terminal into the collector branch.</p>
+      {% endif %}
+      {% endif %}
+
+      {% if plot %}
+      <h3 class="spice-subhead">Plot from this run</h3>
+      <div class="spice-plot">{{ plot|safe }}</div>
+      {% endif %}
+
+      <details class="spice-provenance">
+        <summary>Netlist, engine and log provenance</summary>
+        <dl>
+          <dt>Engine</dt><dd><code>{{ result.provenance.engine }}</code></dd>
+          <dt>BJT model source: {{ result.provenance.model_source }}</dt>
+          <dd><code>{{ result.provenance.model_line }}</code></dd>
+          <dt>Analysis directive</dt><dd><code>{{ result.provenance.directive }}</code></dd>
+          <dt>Run id / workdir</dt>
+          <dd><code>{{ result.provenance.run_id }}</code> ·
+              <code>{{ result.provenance.workdir }}</code></dd>
+          <dt>Raw output</dt><dd>{{ result.provenance.raw_bytes }} bytes</dd>
+        </dl>
+        <h4>circuit.cir</h4>
+        <pre>{{ result.provenance.netlist }}</pre>
+        <h4>run.log (last lines)</h4>
+        <pre>{{ result.provenance.log_excerpt }}</pre>
+      </details>
+
+      {% else %}
+      <p class="empty">Choose an analysis and press <strong>Run simulation</strong>.
+        Results, plots and provenance appear here only after a real ngspice run.</p>
+      {% endif %}
+    </section>
+
+  </main>
+
+  <footer class="goal">
+    <div class="goal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="12" cy="12" r="5"/>
+        <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+      </svg>
+      Lab 04 Goal
+    </div>
+    <p><strong>Reference circuit:</strong> voltage-divider biased NPN common-emitter
+      stage with input/output coupling capacitors and a load <em>R<sub>L</sub></em>.
+      <em>V<sub>in</sub></em> is measured at <code>v(base)</code> and
+      <em>V<sub>out</sub></em> at <code>v(out)</code>. All displayed values come from
+      the ASCII raw output of a real ngspice batch run.</p>
+  </footer>
+
+  <div class="site-footer">
+    <span>GitHub Repository:</span>
+    <a href="https://github.com/Khatcharin16/Gitlab" target="_blank" rel="noopener">
+      github.com/Khatcharin16/Gitlab
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

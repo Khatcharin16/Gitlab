@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from flask import Flask, render_template, request
 
+from app import plots, spice_engine as se
 from app.bjt import (
     BIAS_MODES,
     MODE_LABELS,
@@ -69,6 +73,44 @@ FALLBACK_UNITS: dict[str, str] = {
     "beta": "-",
     "vbe": "V",
 }
+
+# Extra fields for the Lab 04 CE amplifier.  Lab 03's UNIT_MAP/parse_form are
+# intentionally untouched; the simulator parser layers these on top.
+SPICE_UNIT_MAP: dict[str, dict[str, float]] = {
+    "rl": {"ohm": 1.0, "k": 1e3, "M": 1e6},
+    "cin": {"F": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12},
+    "cout": {"F": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12},
+    "amplitude": {"V": 1.0, "mV": 1e-3},
+    "frequency": {"Hz": 1.0, "kHz": 1e3, "MHz": 1e6},
+}
+
+SPICE_DEFAULT_RAW: dict[str, str] = {
+    "rl": "10",
+    "cin": "10",
+    "cout": "10",
+    "amplitude": "10",
+    "frequency": "1",
+}
+
+SPICE_DEFAULT_UNITS: dict[str, str] = {
+    "rl": "k",
+    "cin": "u",
+    "cout": "u",
+    "amplitude": "mV",
+    "frequency": "kHz",
+}
+
+SPICE_FALLBACK_UNITS: dict[str, str] = {
+    "rl": "ohm",
+    "cin": "F",
+    "cout": "F",
+    "amplitude": "V",
+    "frequency": "Hz",
+}
+
+ANALYSIS_LABELS = {"dc": "DC operating point (.op)",
+                   "ac": "AC frequency response (.ac)",
+                   "tran": "Transient waveforms (.tran)"}
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +213,35 @@ def parse_form(form) -> tuple[dict[str, float | None], dict[str, str]]:
             values[key] = None
 
     return values, display
+
+
+def parse_spice_form(form) -> tuple[dict[str, float | None], dict[str, str]]:
+    """Parse Lab 04 fields; reuse Lab 03's parser for the shared components."""
+    values, display = parse_form(form)
+    for key, units in SPICE_UNIT_MAP.items():
+        raw = (form.get(key) or "").strip()
+        unit = form.get(f"{key}_unit", SPICE_FALLBACK_UNITS[key])
+        if unit not in units:
+            unit = SPICE_FALLBACK_UNITS[key]
+        display[key] = raw
+        display[f"{key}_unit"] = unit
+        try:
+            values[key] = float(raw) * units[unit]
+        except (TypeError, ValueError):
+            values[key] = None
+    return values, display
+
+
+def default_spice_form() -> dict[str, str]:
+    """Form contents for the reference CE circuit (10 mV, 1 kHz source)."""
+    form = default_form("divider")
+    form.update(SPICE_DEFAULT_RAW)
+    form.update({f"{key}_unit": unit for key, unit in SPICE_DEFAULT_UNITS.items()})
+    return form
+
+
+def parse_analysis(raw: str | None) -> str:
+    return str(raw or "").strip().lower()
 
 
 def build_circuit(mode: str, values: dict) -> dict[str, str]:
@@ -302,6 +373,178 @@ def compute():
         return render_page(mode, display, values, None, messages)
 
     return render_page(mode, display, values, build_result(mode, values), [])
+
+
+# ---------------------------------------------------------------------------
+# Lab 04 — real ngspice simulator (separate page; Lab 03 routes untouched)
+# ---------------------------------------------------------------------------
+def model_source() -> str:
+    """Label the model's provenance (e.g. 'TEST ONLY - not instructor verified')."""
+    return os.environ.get("NGSPICE_MODEL_SOURCE", "NGSPICE_MODEL_LINE").strip() \
+        or "NGSPICE_MODEL_LINE"
+
+
+def spice_status() -> dict[str, str]:
+    """Report readiness from configuration without ever inventing a result."""
+    info = {
+        "engine_ready": "no", "engine": "not configured",
+        "model_ready": "no", "model": "not configured", "message": "",
+        "model_source": model_source(),
+    }
+    try:
+        banner = se.check_engine()
+        info["engine_ready"] = "yes"
+        info["engine"] = next(
+            (line.strip() for line in banner.splitlines() if "ngspice-" in line.lower()),
+            banner.splitlines()[0].strip() if banner.splitlines() else "ngspice",
+        )
+    except se.SpiceError as exc:
+        info["message"] = f"Engine: {exc}"
+    try:
+        info["model"] = se.model_name_from_line(se.get_model_line())
+        info["model_ready"] = "yes"
+    except se.SpiceError as exc:
+        info["message"] = f"{info['message']} Model: {exc}".strip()
+    return info
+
+
+def render_simulate(analysis: str, form_values: dict, result: dict | None,
+                    plot: str | None, error_messages: list[str],
+                    status: int = 200):
+    """Render the simulator page.  Failures never receive a result or plot."""
+    return render_template(
+        "simulate.html",
+        analysis=analysis,
+        analysis_label=ANALYSIS_LABELS.get(analysis, f"Unknown '{analysis}'"),
+        form_values=form_values,
+        result=result,
+        plot=plot,
+        error_messages=error_messages,
+        status=spice_status(),
+    ), status
+
+
+def _run_spice(analysis: str, values: dict) -> tuple[dict, str]:
+    """Execute one real batch run and build the template context from it."""
+    banner = se.check_engine()
+    model_line = se.get_model_line()
+    netlist = se.build_netlist(analysis, values, model_line=model_line)
+    run = se.run_ngspice(analysis, netlist)
+    se.ensure_success(run)
+
+    directive = next(
+        (line.strip() for line in netlist.splitlines()
+         if line.startswith(".") and not line.lower().startswith((".model", ".end"))),
+        "none",
+    )
+    provenance = {
+        "engine": next(
+            (line.strip() for line in banner.splitlines() if "ngspice-" in line.lower()),
+            "ngspice",
+        ),
+        "model_name": se.model_name_from_line(model_line),
+        "model_line": model_line,
+        "model_source": model_source(),
+        "directive": directive,
+        "run_id": Path(run.workdir).name,
+        "workdir": run.workdir,
+        "returncode": run.returncode,
+        "raw_bytes": len(run.raw),
+        "netlist": netlist,
+        "log_excerpt": "\n".join(run.log.splitlines()[-25:]),
+    }
+    rows: list[dict[str, str]] = []
+    analytical: dict[str, str] | None = None
+    plot = ""
+
+    if analysis == "dc":
+        dc = se.parse_op(run.raw)
+        rows = [
+            {"label": "V<sub>B</sub>", "value": fmt_voltage(dc["vb"])},
+            {"label": "V<sub>E</sub>", "value": fmt_voltage(dc["ve"])},
+            {"label": "V<sub>C</sub>", "value": fmt_voltage(dc["vc"])},
+            {"label": "V<sub>CE</sub>", "value": fmt_voltage(dc["vce"])},
+            {"label": "I<sub>C</sub>", "value": fmt_collector_current(dc["ic"])},
+        ]
+        op = solve_bias("divider", values)
+        analytical = {
+            "ic": fmt_collector_current(op.ic),
+            "vce": fmt_voltage(op.vce),
+            "note": "Lab 3 Thévenin approximation — separate model, not SPICE",
+        }
+    elif analysis == "ac":
+        ac = se.parse_ac(run.raw)
+        crossing = plots.minus_three_db(ac["frequency_hz"], ac["gain_db"])
+        rows = [
+            {"label": "Sweep points", "value": str(len(ac["frequency_hz"]))},
+            {"label": "Frequency range", "value": (
+                f"{ac['frequency_hz'][0]:.3g}–{ac['frequency_hz'][-1]:.3g} Hz")},
+            {"label": "Gain range", "value": (
+                f"{min(ac['gain_db']):.2f} to {max(ac['gain_db']):.2f} dB")},
+            {"label": "Gain at first point", "value": (
+                f"{ac['gain_db'][0]:.2f} dB")},
+            {"label": "Phase at first point", "value": (
+                f"{ac['phase_deg'][0]:.1f} deg")},
+            {"label": "−3 dB frequency", "value": (
+                f"{crossing:.0f} Hz" if crossing is not None
+                else "not determined in sweep range")},
+        ]
+        plot = plots.bode_svg(ac["frequency_hz"], ac["gain_db"], ac["phase_deg"])
+    else:
+        tran = se.parse_tran(run.raw)
+        rows = [
+            {"label": "Sample points", "value": str(len(tran["time_ms"]))},
+            {"label": "Time window", "value": (
+                f"{tran['time_ms'][0]:.3f}–{tran['time_ms'][-1]:.3f} ms")},
+            {"label": "V<sub>in</sub> peak-to-peak", "value": (
+                f"{max(tran['vin']) - min(tran['vin']):.3f} V")},
+            {"label": "V<sub>out</sub> peak-to-peak", "value": (
+                f"{max(tran['vout']) - min(tran['vout']):.3f} V")},
+            {"label": "Phase (from samples)", "value": (
+                plots.phase_relation(tran["vin"], tran["vout"]))},
+        ]
+        plot = plots.waveform_svg(tran["time_ms"], tran["vin"], tran["vout"])
+
+    result = {
+        "analysis": analysis,
+        "analysis_label": ANALYSIS_LABELS[analysis],
+        "rows": rows,
+        "analytical": analytical,
+        "provenance": provenance,
+    }
+    return result, plot
+
+
+@app.get("/simulate")
+def simulate_page():
+    """Show the CE amplifier form with engine/model status, but no results."""
+    return render_simulate("dc", default_spice_form(), None, None, [])
+
+
+@app.post("/simulate")
+def simulate_run():
+    """Validate, run ngspice, render real results — or a clean error panel."""
+    analysis = parse_analysis(request.form.get("analysis"))
+    values, display = parse_spice_form(request.form)
+
+    if analysis not in se.ANALYSIS_MODES:
+        return render_simulate(
+            analysis, display, None, None,
+            [f"Unknown analysis '{analysis}'. Use dc, ac, or tran."], 400,
+        )
+
+    ok, messages = se.validate_spice_inputs({**values, "analysis": analysis})
+    if not ok:
+        return render_simulate(analysis, display, None, None, messages, 400)
+
+    try:
+        result, plot = _run_spice(analysis, values)
+    except se.SpiceValidationError as exc:
+        return render_simulate(analysis, display, None, None, [str(exc)], 400)
+    except se.SpiceError as exc:
+        return render_simulate(analysis, display, None, None, [str(exc)], 502)
+
+    return render_simulate(analysis, display, result, plot, [])
 
 
 # ---------------------------------------------------------------------------
