@@ -15,9 +15,11 @@ Lab 04 adds a separate ngspice-driven DC / AC / transient simulator at
   `8d244d4c9a07fcded70a41ee91f42c8068c43faa`. Earlier Lab 04 commits:
   `734f3e3a65532c58ee9cadf6874cf8aa9b1fa45f`,
   `5f6ffeba85329fc0bff7e654d6de677c522214f2`, `d37fed0`, `24c52d9`.
-- **Lab 04 final submission commit: `08cb0142ad62db4090e94cc59d78f33ef120d132`**
-  (bundled onsemi 2N3904 fallback, instructor-model override, rerun B2–B8, 58 tests).
+- **Lab 04 final submission commit: `63cb6ef10bdf395b23f8cc2dd366601df74b4261`**
+  (bundled onsemi 2N3904 fallback, instructor-model override, Playwright MCP installed and
+  B1–B8 rerun with it, toolchain check, 58 tests).
 - Browser acceptance evidence: [`docs/validation.md`](docs/validation.md)
+- Rubric-mapped image pack: [`docs/evidence/submission/`](docs/evidence/submission/)
 
 ## Bias modes
 
