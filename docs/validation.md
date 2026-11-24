@@ -53,6 +53,9 @@ text after submitting the form.
 
 # Lab 04 — Browser Acceptance (B1–B8)
 
+Final commit: `8d244d4c9a07fcded70a41ee91f42c8068c43faa` ·
+Repository: <https://github.com/Khatcharin16/Gitlab>
+
 Date: 2026-11-24 (final handout-fidelity pass + Impeccable polish pass)
 
 App: <http://127.0.0.1:5001> (Flask dev server, `.venv\Scripts\python.exe`, `debug=False`).

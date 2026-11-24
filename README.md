@@ -10,7 +10,9 @@ Lab 04 adds a separate ngspice-driven DC / AC / transient simulator at
 - Lab 03 commits: `96857921949ed7b664054d0fc906f2dd27dcab76` (tabbed mode UI),
   `0bf0ba5df837b04a4f6f9e0e2b8959eaca2430e4` (Fixed + Emitter modes)
 - Lab 04 implementation commit: `832a29ed5f575035a7c8572a957149b1cd1241af`
-  (**Complete Lab 04 handout fidelity pass**). Earlier Lab 04 commits:
+  (**Complete Lab 04 handout fidelity pass**).
+- Lab 04 Impeccable UI-polish commit:
+  `8d244d4c9a07fcded70a41ee91f42c8068c43faa`. Earlier Lab 04 commits:
   `734f3e3a65532c58ee9cadf6874cf8aa9b1fa45f`,
   `5f6ffeba85329fc0bff7e654d6de677c522214f2`, `d37fed0`, `24c52d9`.
 - Browser acceptance evidence: [`docs/validation.md`](docs/validation.md)
