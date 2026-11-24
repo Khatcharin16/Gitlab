@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from flask import Flask, render_template, request
@@ -445,10 +444,10 @@ def compute():
 # ---------------------------------------------------------------------------
 # Lab 04 — real ngspice simulator (separate page; Lab 03 routes untouched)
 # ---------------------------------------------------------------------------
-def model_source() -> str:
-    """Label the model's provenance (e.g. 'TEST ONLY - not instructor verified')."""
-    return os.environ.get("NGSPICE_MODEL_SOURCE", "NGSPICE_MODEL_LINE").strip() \
-        or "NGSPICE_MODEL_LINE"
+def _model_is_instructor_verified(label: str) -> bool:
+    """A label counts as verified only when it names the instructor kit."""
+    lowered = label.lower()
+    return "instructor" in lowered and "not instructor" not in lowered
 
 
 def spice_status() -> dict[str, str]:
@@ -456,7 +455,7 @@ def spice_status() -> dict[str, str]:
     info = {
         "engine_ready": "no", "engine": "not configured",
         "model_ready": "no", "model": "not configured", "message": "",
-        "model_source": model_source(),
+        "model_source": "not configured", "model_verified": "no",
     }
     try:
         banner = se.check_engine()
@@ -468,7 +467,10 @@ def spice_status() -> dict[str, str]:
     except se.SpiceError as exc:
         info["message"] = f"Engine: {exc}"
     try:
-        info["model"] = se.model_name_from_line(se.get_model_line())
+        model_line, source = se.resolve_model()
+        info["model"] = se.model_name_from_line(model_line)
+        info["model_source"] = source
+        info["model_verified"] = "yes" if _model_is_instructor_verified(source) else "no"
         info["model_ready"] = "yes"
     except se.SpiceError as exc:
         info["message"] = f"{info['message']} Model: {exc}".strip()
@@ -496,7 +498,8 @@ def render_simulate(analysis: str, form_values: dict, result: dict | None,
     ), status
 
 
-def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple[dict, str]:
+def _analyse(analysis: str, banner: str, model_line: str, values: dict,
+             model_label: str) -> tuple[dict, str]:
     """Execute one real batch run and build the template context from it."""
     netlist = se.build_netlist(analysis, values, model_line=model_line)
     run = se.run_ngspice(analysis, netlist)
@@ -514,7 +517,7 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
         ),
         "model_name": se.model_name_from_line(model_line),
         "model_line": model_line,
-        "model_source": model_source(),
+        "model_source": model_label,
         "directive": directive,
         "run_id": Path(run.workdir).name,
         "workdir": run.workdir,
@@ -613,8 +616,8 @@ def _analyse(analysis: str, banner: str, model_line: str, values: dict) -> tuple
 def _run_spice(analysis: str, values: dict) -> tuple[dict, dict[str, dict], dict[str, str]]:
     """Dispatch the selected analysis to the one real ngspice run it needs."""
     banner = se.check_engine()
-    model_line = se.get_model_line()
-    result, plot = _analyse(analysis, banner, model_line, values)
+    model_line, model_label = se.resolve_model()
+    result, plot = _analyse(analysis, banner, model_line, values, model_label)
     return result, {analysis: result}, {analysis: plot}
 
 

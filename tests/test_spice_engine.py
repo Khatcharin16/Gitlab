@@ -86,10 +86,45 @@ def test_build_netlist_ac_and_tran_directives_are_different():
     assert ".ac " not in tran
 
 
-def test_build_netlist_requires_a_configured_model(monkeypatch):
+def test_build_netlist_falls_back_to_bundled_vendor_model(monkeypatch):
+    """With no env override the bundled, cited onsemi model is used."""
     monkeypatch.delenv(se.MODEL_ENV, raising=False)
+    monkeypatch.delenv(se.MODEL_FILE_ENV, raising=False)
+    netlist = se.build_netlist("dc", BASE_VALUES)
+    assert ".model q2n3904 npn" in netlist.lower()
+    assert "Q1 collector base emitter Q2n3904" in netlist
+
+
+def test_resolve_model_env_line_wins(monkeypatch):
+    monkeypatch.setenv(se.MODEL_ENV, TEST_MODEL_LINE)
+    line, label = se.resolve_model()
+    assert line == TEST_MODEL_LINE
+    assert label == "NGSPICE_MODEL_LINE"
+
+
+def test_resolve_model_reads_file_and_joins_continuations(monkeypatch):
+    monkeypatch.delenv(se.MODEL_ENV, raising=False)
+    monkeypatch.setenv(se.MODEL_FILE_ENV, str(se.BUNDLED_MODEL_FILE))
+    line, label = se.resolve_model()
+    assert "\n" not in line
+    assert line.lower().startswith(".model q2n3904 npn")
+    assert "BF=206.302" in line
+    assert label == "2N3904_onsemi.model"
+
+
+def test_resolve_model_rejects_missing_file(monkeypatch):
+    monkeypatch.delenv(se.MODEL_ENV, raising=False)
+    monkeypatch.setenv(se.MODEL_FILE_ENV, "does-not-exist.model")
     with pytest.raises(se.SpiceConfigError):
-        se.build_netlist("dc", BASE_VALUES)
+        se.resolve_model()
+
+
+def test_resolve_model_raises_when_no_source_exists(monkeypatch, tmp_path):
+    monkeypatch.delenv(se.MODEL_ENV, raising=False)
+    monkeypatch.delenv(se.MODEL_FILE_ENV, raising=False)
+    monkeypatch.setattr(se, "BUNDLED_MODEL_FILE", tmp_path / "absent.model")
+    with pytest.raises(se.SpiceConfigError):
+        se.resolve_model()
 
 
 def test_build_netlist_rejects_invalid_values():

@@ -283,7 +283,16 @@
               {{ status.model_ready }}</span>
             <code>{{ status.model }}</code></div>
           <div><span class="spice-status-key">Model source</span>
+            {% if status.model_ready == 'yes' %}
+            <span class="badge {{ 'match' if status.model_verified == 'yes' else 'delta' }}">
+              {{ 'verified' if status.model_verified == 'yes' else 'unverified' }}</span>
+            {% endif %}
             <code>{{ status.model_source }}</code></div>
+          {% if status.model_ready == 'yes' and status.model_verified == 'no' %}
+          <p class="spice-status-msg">Not the Instructor Starter Kit model. Set
+            <code>NGSPICE_MODEL_LINE</code> or <code>NGSPICE_MODEL_FILE</code> to the
+            instructor <code>.model</code> line before graded use.</p>
+          {% endif %}
           {% if status.message %}<p class="spice-status-msg">{{ status.message }}</p>{% endif %}
         </div>
       </article>

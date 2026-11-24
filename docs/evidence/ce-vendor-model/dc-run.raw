@@ -1,0 +1,29 @@
+Title: * lab04 ce voltage-divider reference (real ngspice run)
+Date: Tue Nov 24 18:29:49  2026
+Command: ngspice-47, Build Aug 11 2026   13:55:25
+Plotname: Operating Point
+Flags: real
+No. Variables: 10
+No. Points: 1       
+Variables:
+	0	v(vcc)	voltage
+	1	v(base)	voltage
+	2	v(rctop)	voltage
+	3	v(collector)	voltage
+	4	v(emitter)	voltage
+	5	v(vs)	voltage
+	6	v(out)	voltage
+	7	i(vs)	current
+	8	i(vic)	current
+	9	i(vcc)	current
+Values:
+0		1.200000000000000e+01
+	1.967953686191883e+00
+	1.200000000000000e+01
+	9.083865682559434e+00
+	1.336383612436860e+00
+	0.000000000000000e+00
+	0.000000000000000e+00
+	0.000000000000000e+00
+	1.325515598836621e-03
+	-1.425836061974702e-03

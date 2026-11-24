@@ -275,3 +275,13 @@ outcome is recorded in the final report.
 If ngspice or the Starter model cannot be obtained, stop at Task 0, report the blocker, and do not
 produce fake plots. If time runs short, reduce UI polish before reducing real simulation or browser
 acceptance. If a browser tool did not execute, mark it NOT RUN — never claim a PASS.
+
+## Final model fallback (2026-11-24)
+
+The Instructor Starter Kit `.model` file was not present on this machine. Rather than ship an
+unrunnable app or invent parameters, model resolution became: `NGSPICE_MODEL_LINE` →
+`NGSPICE_MODEL_FILE` → bundled `models/2N3904_onsemi.model` (cited onsemi 2N3904, MODPEX
+header). The bundled path is labelled `Bundled vendor model (onsemi 2N3904) — NOT instructor
+verified` and shows an `unverified` badge plus a warning. The instructor model overrides it with
+one environment variable and preserves the audit trail. B2–B8 were rerun with the bundled model;
+the gate stays **OPEN** until the instructor file is supplied.

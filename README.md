@@ -184,20 +184,37 @@ official SourceForge release) lives at:
 C:\Users\B6837006\AppData\Local\Temp\opencode\ngspice-47\Spice64\bin\ngspice_con.exe
 ```
 
-Set these before starting Flask, or add that `bin` folder to `PATH`:
+Set the engine path before starting Flask, or add that `bin` folder to `PATH`:
 
 ```powershell
 $env:NGSPICE_BIN = "...\ngspice-47\Spice64\bin\ngspice_con.exe"
+.venv\Scripts\python.exe -m app.app
+```
+
+### BJT model (instructor Starter Kit)
+
+The model is resolved in this order and is never invented:
+
+1. `NGSPICE_MODEL_LINE` — the instructor Starter Kit `.model <name> NPN(...)` line, one line;
+2. `NGSPICE_MODEL_FILE` — a file containing that `.model` statement;
+3. `models/2N3904_onsemi.model` — a bundled, cited onsemi 2N3904 vendor model so the app is
+   runnable without the Starter Kit.
+
+To use the instructor model, set either of the first two:
+
+```powershell
 $env:NGSPICE_MODEL_LINE = "<instructor .model line, one line>"
 $env:NGSPICE_MODEL_SOURCE = "Instructor Starter Kit"
 .venv\Scripts\python.exe -m app.app
 ```
 
-`NGSPICE_MODEL_LINE` must be the instructor-verified `.model <name> NPN(...)`
-line. It is **not hard-coded** in the app; without it the page shows a config
-error and never invents a device. `NGSPICE_MODEL_SOURCE` is only a label shown
-in the UI/provenance. Browser evidence in `docs/validation.md` used a
-`TEST ONLY - not instructor verified` model, clearly labelled on the page.
+`NGSPICE_MODEL_SOURCE` is only the provenance label shown in the UI. If all three
+sources are absent/empty the page shows a config error. With the bundled fallback the
+page shows an `unverified` badge and
+`Bundled vendor model (onsemi 2N3904) — NOT instructor verified`; it is real ngspice
+input but **not** the instructor model, so replace it before graded use.
+`models/2N3904_onsemi.model` was downloaded from onsemi on 2026-11-24 and keeps its
+MODPEX/Symmetry header.
 
 The adapter writes each netlist into its own temporary directory and runs:
 
@@ -215,12 +232,12 @@ unless ngspice exits 0 and its raw file parses successfully.
 .venv\Scripts\python.exe -m pytest tests/ -q
 ```
 
-Expected: **54 passed** (23 Lab 03 + 31 Lab 04). Lab 04 adds adapter, parser,
-plot and route tests, including checks for the five separated panels,
-selected-mode dispatch, `VIC`-based IC, midband −3 dB calculation, legends,
-collapsed sample tables, the AC-centred transient waveform view and all three
-result panels. Browser acceptance is recorded in
-[`docs/validation.md`](docs/validation.md).
+Expected: **58 passed** (23 Lab 03 + 35 Lab 04). Lab 04 adds adapter, parser,
+plot and route tests, including model-resolution precedence (env line → file →
+bundled vendor model), `VIC`-based IC, the five separated panels, selected-mode
+dispatch, midband −3 dB calculation, legends, collapsed sample tables, the
+AC-centred transient waveform view and all three result panels. Browser
+acceptance is recorded in [`docs/validation.md`](docs/validation.md).
 
 ## Project layout
 
@@ -233,7 +250,8 @@ app/
   plots.py          Lab 04: inline SVG Bode and waveform plots from parsed arrays
   templates/        index.html (Lab 03) and simulate.html (Lab 04)
   static/           Shared styles and simulate.js (Running/button state only)
-tests/              54 pytest tests (23 Lab 03 + 31 Lab 04)
+models/             2N3904_onsemi.model (cited vendor fallback, not instructor-verified)
+tests/              58 pytest tests (23 Lab 03 + 35 Lab 04)
 docs/validation.md  A1–A5 and B1–B8 acceptance evidence
 docs/evidence/      Screenshots and real ngspice log/raw samples
 ```
@@ -250,18 +268,21 @@ docs/evidence/      Screenshots and real ngspice log/raw samples
 
 Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 
-## Lab 04 acceptance summary (test-only model)
+## Lab 04 acceptance summary (bundled onsemi 2N3904 — not instructor-verified)
 
 | Case | Observed | Result |
 | --- | --- | --- |
 | B1 | Lab 03 values unchanged in all three modes | PASS |
-| B2 | `.op` values from `i(vic)`, model source and `Success (1/1)` shown from real run | PASS (model gate open) |
-| B3 | RE 1 → 2 kΩ changed IC 1.26 → 0.69 mA | PASS |
-| B4 | AC Bode axes/units, 141 parsed points, midband −3 dB at 1.31 Hz | PASS |
-| B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
-| B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
+| B2 | `.op` from `i(vic)`: VB 1.97 V, VE 1.34 V, VC 9.08 V, VCE 7.75 V, IC 1.33 mA; `Success (1/1)` and the `unverified` model source shown from a real run | PASS (model gate open) |
+| B3 | RE 1 → 2 kΩ changed IC 1.33 → 0.71 mA and VCE 7.75 → 8.99 V | PASS |
+| B4 | AC Bode axes/units, 141 parsed points, gain 0.48–4.80 dB, midband −3 dB at 1.30964 Hz | PASS |
+| B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp / 34.60 mV Vout pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
+| B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.60 → 69.21 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
 | B8 | Layout: 1296 px desktop two-column workspace (400 px setup rail + flexible output) and 390 px CSS viewport one column; no page overflow; five panels, plots, fixture summary and vertical result list render; Impeccable detector clean after all polish passes | PASS |
 
-Full detail, engine version, model caveat and screenshots are in
+These B2–B8 values are real ngspice-47 output, but the model is the bundled onsemi
+vendor fallback, **not** the Instructor Starter Kit model. Set `NGSPICE_MODEL_LINE`
+or `NGSPICE_MODEL_FILE` to the instructor `.model` line and rerun B2–B6 before
+graded submission. Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

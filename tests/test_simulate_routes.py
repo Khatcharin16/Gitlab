@@ -26,7 +26,10 @@ def fake_engine(monkeypatch):
     """Patch only external boundaries; netlist/parser code stays real."""
     monkeypatch.setattr(se, "check_engine",
                         lambda: "** ngspice-47 : Circuit level simulation program")
-    monkeypatch.setattr(se, "get_model_line", lambda: MODEL_LINE)
+    monkeypatch.setattr(
+        se, "resolve_model",
+        lambda: (MODEL_LINE, "TEST ONLY - not instructor verified"),
+    )
     monkeypatch.setattr(
         se, "run_ngspice",
         lambda analysis, netlist: se.SpiceRun(0, "", "", "run log", RAW, "tmp-fake-run"),

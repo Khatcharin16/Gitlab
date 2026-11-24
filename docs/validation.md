@@ -71,6 +71,15 @@ the rendered `/simulate` page at 1280×800 and 390×844 before and after the CSS
 formal two-sub-agent critique workflow was **NOT RUN**; these are deterministic detector
 results plus manual visual review, not a claimed full design critique.
 
+**Model fallback (final pass).** The Instructor Starter Kit `.model` file was not present on
+this machine. To keep the app runnable without inventing parameters, the adapter resolves the
+model in this order: `NGSPICE_MODEL_LINE` → `NGSPICE_MODEL_FILE` → the bundled, cited
+`models/2N3904_onsemi.model` (onsemi 2N3904, MODPEX header). The bundled model is labelled
+`Bundled vendor model (onsemi 2N3904) — NOT instructor verified` in the UI and in every result
+provenance block. B2–B8 below were re-run with that bundled model on 2026-11-24. The instructor
+model still overrides it with one environment variable; the gate is **OPEN** until that file is
+supplied.
+
 ## UI structure — five clearly separated panels
 
 The handout's three conceptual blocks were refined into a two-region workspace so
@@ -191,7 +200,9 @@ active analysis is obvious at a glance:
 | Console/tests | No browser console errors; **54 passed** | **PASS** |
 
 Evidence: `docs/evidence/B8-results-ac.jpg` and `docs/evidence/B8-results-tran.jpg`.
-No formula, netlist, parser, validation or JS code changed in this pass.
+No formula, netlist, parser, validation or JS code changed in this pass. The numeric examples
+in this subsection were captured with the earlier `QTEST` plumbing model; the final
+bundled-model rerun values are the B2–B6 rows above.
 
 ## Engine and model provenance
 
@@ -212,24 +223,28 @@ No formula, netlist, parser, validation or JS code changed in this pass.
   also contained the divider current and was corrected. The regenerated
   `parser_fixture.raw` contains the `i(vic)` column in its OP section.
 - **BJT model gate is still OPEN.** No instructor Starter Kit was present on the machine.
-  Browser runs used `NGSPICE_MODEL_LINE = .model QTEST NPN(IS=1e-14 BF=100)` with
-  `NGSPICE_MODEL_SOURCE = TEST ONLY - not instructor verified`; the page displays both
-  values. Those numbers exercise plumbing only and are **not** graded CE results. Replace
-  the environment variable with the instructor `.model` line before using the app for
-  graded work. No model parameters are hard-coded in application code.
+  The final browser runs used the bundled `models/2N3904_onsemi.model` (onsemi 2N3904,
+  MODPEX-generated, downloaded from onsemi on 2026-11-24). It is a real, cited vendor model,
+  not a guessed one, but it is **not** the instructor model; the page labels it
+  `Bundled vendor model (onsemi 2N3904) — NOT instructor verified` and shows an `unverified`
+  badge plus a “Not the Instructor Starter Kit model” warning. Those numbers exercise the
+  complete netlist/run/parse path and are **not** graded CE results. Set
+  `NGSPICE_MODEL_LINE` (or `NGSPICE_MODEL_FILE`) to the instructor `.model` line to override
+  it; no model parameters are hard-coded in application code. The earlier `QTEST`
+  (`IS=1e-14 BF=100`) artifacts remain under `docs/evidence/ce-test-model/` for history.
 
 ## B1–B8 results
 
 | Case | Method | Input | Expected/Reference | Observed | Evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | B1 · Regression | OpenCode Browser navigate + snapshot on `/?mode=divider`, `fixed`, `emitter`; submit Lab 03 fixtures | VCC 12 V, RC 2.2 kΩ, β 100, VBE 0.70 V; Divider R1/R2/RE = 100 kΩ/22 kΩ/1 kΩ; Fixed RB = 1 MΩ; Emitter RB = 1 MΩ, RE = 1 kΩ | The original three analytical results and routes must be unchanged | Divider IC **1.23 mA**, VCE **8.05 V**; Fixed IC **1.13 mA**, VCE **9.51 V**; Emitter IC **1.03 mA**, VCE **8.71 V**; all forms render with the correct mode label | Browser snapshots + `docs/evidence/B1-lab3-regression.png`; 23 Lab 03 tests still pass | **PASS** |
-| B2 · DC SPICE | Select DC, submit the real form, read the table and banner | Fixture values; RE = 1 kΩ; test model injected through `NGSPICE_MODEL_LINE` | VB/VE/VC/VCE/IC from parsed real `.op`, Model and Run Status visible; no analytical value masquerading as SPICE | `Success — .op completed (1/1)`, exit 0, run id `lab04-dc-hja8yg6_`; VB **1.94 V**, VE **1.28 V**, VC **9.22 V**, VCE **7.95 V**, IC **1.26 mA** (from `i(vic)`); model `QTEST`, source `TEST ONLY - not instructor verified`; Lab 3 reference shown separately as IC 1.23 mA / VCE 8.05 V | Browser evaluate + response HTML; `docs/evidence/ce-test-model/` logs/raw; regenerated `parser_fixture.raw` has `i(vic)` | **PASS (mechanism), model gate open** |
-| B3 · Change RE | Change only the RE field and rerun DC | RE 1 kΩ → 2 kΩ, all other fixture values unchanged | Operating point changes; no old values, old run id or stale plot remains | IC **1.26 → 0.69 mA**, VCE **7.95 → 9.09 V**, new run id; AC/DC/Transient cards not selected show `Not run in this mode`; analytical row also updates | Before/after browser evaluations; route test covers no stale result | **PASS** |
-| B4 · AC | Select AC, submit, inspect SVG, sample table and provenance | 1 Hz–10 MHz sweep, 20 points/decade; 10 mV · 1 kHz source | Frequency, gain dB and phase deg with units from real `.ac`; −3 dB defined against midband maximum | **141** points, **1 Hz–10 MHz**, gain **0.54 to 4.86 dB**, midband reference **4.86 dB**, target **1.86 dB**, −3 dB frequency **1.31 Hz**, phase at first point **−127.5 deg**; SVG has 2 polylines of 141 parsed points and a dashed midband reference line | Browser evaluate, run id `lab04-ac-vppaoowp`, `docs/evidence/B4-ac-bode.png`, engine raw/log | **PASS** |
-| B5 · Transient | Select Transient, submit, inspect waveform and result table | 10 mV peak, 1 kHz, 0–5 ms window, `Vin = v(base)`, `Vout = v(out)` | Vin/Vout vs time with voltage and time units; CE inversion visible from real samples | **108** points, **0.000–5.000 ms**, Vin pp **19.92 mV**, Vout pp **34.86 mV**, phase **inverted (~180°), correlation −1.00**; axes `Time (ms)` and node-labelled voltage legend. The traces are drawn as each node's AC component about its own mean (mV), so the ~20/35 mV sine is readable instead of being flattened by the ~1.3 V / 9.2 V DC levels; absolute values remain in the table | Browser evaluate, run id `lab04-tran-txhpwwzd`, `docs/evidence/B5-transient.png`, corrected-view `docs/evidence/B5-transient-ac-view.jpg`, parsed `.tran` raw | **PASS** |
-| B6 · Change source | Change both amplitude and frequency, rerun Transient | Amplitude 10 → 20 mV and frequency 1 → 2 kHz | Waveform, time window and measured values change; not a hard-coded trace | Fixture summary becomes `20 mV · 2 kHz`; time window **0.000–2.500 ms**, Vin pp **39.84 mV**, Vout pp **69.72 mV**; SVG coordinates and run id change | Before/after browser evaluations; new run id `lab04-tran-jthrkcc4`; `docs/evidence/B6-change-source.png` | **PASS** |
+| B2 · DC SPICE | Select DC, submit the real form, read the table and banner | Fixture values; RE = 1 kΩ; bundled onsemi 2N3904 model (no env override) | VB/VE/VC/VCE/IC from parsed real `.op`, Model and Run Status visible; no analytical value masquerading as SPICE | `Success — .op completed (1/1)`, exit 0, run id `lab04-dc-vy3r3d3s`; VB **1.97 V**, VE **1.34 V**, VC **9.08 V**, VCE **7.75 V**, IC **1.33 mA** (from `i(vic)`); model `Q2n3904`, source `Bundled vendor model (onsemi 2N3904) — NOT instructor verified`; Lab 3 reference shown separately as IC 1.23 mA / VCE 8.05 V | Browser evaluate + response HTML; `docs/evidence/B2-dc-spice.png`; `docs/evidence/ce-vendor-model/dc-*` logs/raw | **PASS (mechanism), model gate open** |
+| B3 · Change RE | Change only the RE field and rerun DC | RE 1 kΩ → 2 kΩ, all other fixture values unchanged | Operating point changes; no old values, old run id or stale plot remains | IC **1.33 → 0.71 mA**, VCE **7.75 → 8.99 V**, new run id `lab04-dc-6409572x`; AC/DC/Transient cards not selected show `Not run in this mode`; analytical row also updates | Before/after browser evaluations; `docs/evidence/B3-change-re.png`; route test covers no stale result | **PASS** |
+| B4 · AC | Select AC, submit, inspect SVG, sample table and provenance | 1 Hz–10 MHz sweep, 20 points/decade; 10 mV · 1 kHz source | Frequency, gain dB and phase deg with units from real `.ac`; −3 dB defined against midband maximum | **141** points, **1 Hz–10 MHz**, gain **0.48 to 4.80 dB**, midband reference **4.80 dB**, target **1.80 dB**, −3 dB frequency **1.30964 Hz**, phase at first point **−127.5 deg**; SVG has 2 polylines of 141 parsed points and a dashed midband reference line | Browser evaluate, run id `lab04-ac-v0ofwpp4`, `docs/evidence/B4-ac-bode.png`, `docs/evidence/ce-vendor-model/ac-*` logs/raw | **PASS** |
+| B5 · Transient | Select Transient, submit, inspect waveform and result table | 10 mV peak, 1 kHz, 0–5 ms window, `Vin = v(base)`, `Vout = v(out)` | Vin/Vout vs time with voltage and time units; CE inversion visible from real samples | **108** points, **0.000–5.000 ms**, Vin pp **19.92 mV**, Vout pp **34.60 mV**, phase **inverted (~180°), correlation −1.00**; axes `Time (ms)` and node-labelled voltage legend. The traces are drawn as each node's AC component about its own mean (mV), so the ~20/35 mV sine is readable instead of being flattened by the ~1.3 V / 9.1 V DC levels; absolute values remain in the table | Browser evaluate, run id `lab04-tran-yor0ml6g`, `docs/evidence/B5-transient.png`, `docs/evidence/ce-vendor-model/tran-*` logs/raw | **PASS** |
+| B6 · Change source | Change both amplitude and frequency, rerun Transient | Amplitude 10 → 20 mV and frequency 1 → 2 kHz | Waveform, time window and measured values change; not a hard-coded trace | Fixture summary becomes `20 mV · 2 kHz`; time window **0.000–2.500 ms**, Vin pp **39.84 mV**, Vout pp **69.21 mV**; SVG coordinates and run id change | Before/after browser evaluations; new run id `lab04-tran-38832zf7`; `docs/evidence/B6-change-source.png`; `docs/evidence/ce-vendor-model/tran-20mv-2khz-*` | **PASS** |
 | B7 · Invalid / fail | Set RE = 0 and submit; also test engine/parse exception paths in route tests | RE = 0 Ω; simulated `SpiceEngineError` and `SpiceParseError` | Error shown, no Success state, no stale plot or results | Banner `Error — no results shown` with `RE must be > 0 and <= 1e+07`; `plot-svg` count **0**, no `Success —`, HTTP 400. Exception paths render HTTP 502 with an error and no chart | Browser evaluate + `tests/test_simulate_routes.py`; `docs/evidence/B7-invalid-re.png` | **PASS** |
-| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Readable, separated panels: Parameters, Circuit reference, Run control, Plots, Results; no clipped critical content | **Desktop**: `innerWidth 1296`, no document overflow, two-column workspace `400px + 809px`, five headings in task order, AC SVG renders. **Phone**: `innerWidth 390`, `clientWidth/scrollWidth 375`, one `347px` column with the same DOM order, engine/result grids collapse to one column, plots keep their horizontal scroller | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png`, `B8-impeccable-after-1280.png`, `B8-impeccable-after-390.png`, final `B8-layout-1280.png`, `B8-layout-390.png`, `B8-layout-desktop-result.jpg`, `B8-results-ac.jpg`, `B8-results-tran.jpg` | **PASS** |
+| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Readable, separated panels: Parameters, Circuit reference, Run control, Plots, Results; no clipped critical content | **Desktop**: `innerWidth 1296`, `scrollWidth 1281`, no document overflow, two-column workspace, five headings in task order, real AC SVG and the `unverified` model badge render (`lab04-ac-e9iritcr`). **Phone**: `iframeWidth 390`, `clientWidth/scrollWidth 375`, one-column stack with the same DOM order, engine/result grids collapse to one column, plots keep their horizontal scroller | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png`, `B8-impeccable-after-1280.png`, `B8-impeccable-after-390.png`, final `B8-layout-1280.png`, `B8-layout-390.png`, `B8-layout-desktop-result.jpg`, `B8-results-ac.jpg`, `B8-results-tran.jpg` | **PASS** |
 
 Phone and desktop verification used real CSS layout viewports in Chromium iframes because
 OpenCode Browser has no device-emulation control. It is **not** Playwright MCP device
@@ -241,11 +256,13 @@ so no page-level critical content is clipped. Final layout screenshots:
 real result pages are in `docs/evidence/B8-layout-desktop-result.jpg`,
 `docs/evidence/B8-results-ac.jpg` and `docs/evidence/B8-results-tran.jpg`.
 
-Earlier screenshots: `docs/evidence/B1-lab3-regression.png`, `B2-dc-spice.png`,
-`B3-change-re.png`, `B4-ac-bode.png`, `B5-transient.png`, `B6-change-source.png`,
-`B7-invalid-re.png`. Real engine artifacts for the test model are in
-`docs/evidence/ce-test-model/` (`dc/ac/tran-circuit.cir`, `-run.log`, `-run.raw`), and
-parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
+Current screenshots for B2–B7 are `docs/evidence/B2-dc-spice.png`, `B3-change-re.png`,
+`B4-ac-bode.png`, `B5-transient.png`, `B6-change-source.png` and `B7-invalid-re.png`, all
+regenerated with the bundled onsemi model. Real engine artifacts for that model are in
+`docs/evidence/ce-vendor-model/` (`dc`, `dc-re2k`, `ac`, `ac-20mv`, `tran`, `tran-20mv-2khz`
+with `-circuit.cir`, `-run.log`, `-run.raw`), and parser fixtures with the same node names are
+in `docs/evidence/spice-sample/`. The earlier `QTEST` plumbing artifacts remain in
+`docs/evidence/ce-test-model/` for history; they are not the reported B2–B6 results.
 
 ## Lab 04 checks beyond B1–B8
 
@@ -259,12 +276,15 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 | Full suite after transient AC-view fix | same command | **54 passed** (23 Lab 03 + 31 Lab 04); new test proves a 10–20 mV ripple on a large DC offset spans >80 px in the SVG instead of being visually flat | **PASS** |
 | Transient AC-view browser recheck | real `.tran` POST in OpenCode Browser after restart | `Success — .tran 50u 5m 0 50u completed (1/1)`, 2 polylines with y-spans **132 px** (Vin) and **232 px** (Vout), SVG note `AC view: trace − own mean (mV)`, no console errors | **PASS** |
 | Full suite after layout clarity pass | same command | **54 passed**; one route test renamed to assert five separated panels instead of the old three handout labels | **PASS** |
+| Full suite after bundled vendor model | `.venv\Scripts\python.exe -m pytest tests/ -q` | **58 passed** (23 Lab 03 + 35 Lab 04); adds `resolve_model` precedence, continuation-line joining, missing-file and no-source fallback tests | **PASS** |
+| Browser rerun with bundled model | real OpenCode Browser POSTs for DC, RE = 2 kΩ, AC, Transient, 20 mV / 2 kHz and `RE = 0` | `lab04-dc-vy3r3d3s`, `lab04-dc-6409572x`, `lab04-ac-v0ofwpp4`, `lab04-tran-yor0ml6g`, `lab04-tran-38832zf7`; all success runs exited 0, `RE = 0` showed `Error — no results shown`; console error list empty | **PASS** |
+| Impeccable detector after bundled model | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports with the new `unverified` badge/warning visible | **PASS** |
 | Impeccable detector after polish | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports; result-page AC run still succeeded with 1 parsed SVG and no console errors | **PASS** |
 | Formal Impeccable dual-agent critique | Not attempted | Detector + manual polish only; no two-sub-agent design critique is claimed | **NOT RUN** |
 | Engine failure path | route test monkeypatch raising `SpiceEngineError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | Parse failure path | route test monkeypatch raising `SpiceParseError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |
 | No stale result after a failure | successful AC POST then `RE = 0` POST in the same client | SVG disappears, error remains | **PASS** |
-| Injected model | route test with `QTEST` and unit tests with `QTEST` | Netlist and page show `QTEST`; no engineer model is stored in source | **PASS** |
+| Model resolution | route test patches `resolve_model` with `QTEST`; unit tests cover env-line, file, bundled and missing-source precedence | Env override wins; the bundled onsemi model is read from `models/` and labelled unverified; a missing source raises instead of guessing | **PASS** |
 | `RE >= 0` Lab 03 vs `RE > 0` SPICE | unit tests on both validators | Divider still accepts 0 Ω; SPICE rejects it | **PASS** |
 | Illustrative layout vs real data | route test counts `plot-svg` elements after each selected mode and browser checks SVG point labels | DC renders 0 plots, AC renders 1 Bode SVG, Transient renders 1 waveform SVG; every point is generated from parsed ngspice arrays | **PASS** |
 | Selected-mode dispatch | browser set AC/Transient radios outside the form and submitted; page evaluate immediately after submit | Running text became `Running ngspice (Transient .tran) — please wait…`; both buttons disabled with `aria-busy`, both result regions `aria-busy`; buttons restored on page load | **PASS** |
@@ -273,13 +293,15 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 
 ## Limitations
 
-- The BJT parameters are test-only; no instructor-verified DC/AC/transient values can be
-  claimed until the Starter Kit `.model` line is supplied. Every browser number above is a
-  mechanism check, not a graded amplifier result.
+- The bundled BJT parameters are a cited onsemi vendor model, but they are **not** the
+  Instructor Starter Kit model; no instructor-verified DC/AC/transient values can be claimed
+  until that `.model` line is supplied. Every browser number above is a real-solver mechanism
+  check, not a graded amplifier result. Swapping in the instructor model needs only
+  `NGSPICE_MODEL_LINE` or `NGSPICE_MODEL_FILE`; rerun B2–B6 afterwards.
 - The −3 dB reference is defined as `max(gain_db) − 3 dB`, matching the handout's midband
-  reference idea. For the test model it is 1.86 dB and the interpolated crossing is
-  1.31 Hz; when no crossing exists the page says `not determined in sweep range` rather
-  than inventing one. This value would change with the instructor model.
+  reference idea. For the bundled onsemi model it is 1.80 dB and the interpolated crossing is
+  1.30964 Hz; when no crossing exists the page says `not determined in sweep range` rather
+  than inventing one. This value will change with the instructor model.
 - Only the selected analysis runs per submit. This follows the handout flowchart; the other
   result cards deliberately say `Not run in this mode` instead of filling old values.
 - On the 390 px CSS viewport the plot is horizontally scrollable inside its panel. This is a
@@ -289,6 +311,6 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 - Impeccable was run as a deterministic detector + manual polish pass after portable Node
   made the CLI available. The formal two-sub-agent critique workflow remains NOT RUN, so no
   full heuristic-scored critique is claimed. The detector was clean at both target viewports
-  after the CSS-only fixes; the test-only BJT model caveat above is unchanged.
+  after the CSS-only fixes; the bundled-vendor-model caveat above is unchanged.
 - All `run.log` excerpts and raw files listed above were produced by ngspice-47 in batch
   mode; no trace was generated from constants or hand-drawn points.

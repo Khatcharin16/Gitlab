@@ -3,10 +3,17 @@
 This module owns the boundary between Flask and the external simulator:
 validation -> netlist -> ``subprocess.run`` -> ASCII raw parsing.
 
-The BJT model is deliberately *not* hard-coded here.  It must be supplied by
-the instructor Starter Kit through ``NGSPICE_MODEL_LINE`` (or passed directly
-to :func:`build_netlist`).  Without it, netlist creation raises
-:class:`SpiceConfigError` instead of inventing device parameters.
+The BJT model is never invented in code.  Resolution order is:
+
+1. ``NGSPICE_MODEL_LINE`` — the instructor Starter Kit ``.model`` line;
+2. ``NGSPICE_MODEL_FILE`` — a file containing that ``.model`` statement;
+3. ``models/2N3904_onsemi.model`` — a bundled, cited onsemi vendor model so the
+   app is runnable without the Starter Kit.  Its provenance label says it is
+   **not** instructor-verified, and every result page repeats that label.
+
+The instructor model always wins, so swapping it in needs only an environment
+variable.  If none of the three sources exists, netlist creation raises
+:class:`SpiceConfigError` instead of guessing device parameters.
 """
 
 from __future__ import annotations
@@ -27,7 +34,16 @@ ANALYSIS_MODES = ("dc", "ac", "tran")
 
 ENGINE_ENV = "NGSPICE_BIN"
 MODEL_ENV = "NGSPICE_MODEL_LINE"
+MODEL_FILE_ENV = "NGSPICE_MODEL_FILE"
+MODEL_SOURCE_ENV = "NGSPICE_MODEL_SOURCE"
 ENGINE_CANDIDATES = ("ngspice_con", "ngspice")
+
+# Bundled fallback: a real, cited onsemi model.  It is explicitly *not* the
+# instructor Starter Kit model; the UI and docs label it as unverified.
+BUNDLED_MODEL_FILE = Path(__file__).resolve().parent.parent / "models" / "2N3904_onsemi.model"
+BUNDLED_MODEL_LABEL = (
+    "Bundled vendor model (onsemi 2N3904) — NOT instructor verified"
+)
 
 
 class SpiceError(Exception):
@@ -127,24 +143,85 @@ def model_name_from_line(model_line: str) -> str:
     return match.group(1)
 
 
-def get_model_line() -> str:
-    """Return the instructor model line from configuration.
+def _one_line_model(line: str, origin: str) -> str:
+    """Normalise and sanity-check a single logical ``.model`` statement."""
+    text = " ".join(line.split())
+    if not text.lower().startswith(".model"):
+        raise SpiceConfigError(f"{origin} must start with '.model <name> NPN(...)'.")
+    model_name_from_line(text)
+    return text
 
-    Raises instead of guessing parameters when the Starter Kit has not been
-    supplied.
+
+def read_model_file(path: Path) -> str:
+    """Read a SPICE model file and join its ``+`` continuation lines.
+
+    The bundled onsemi model wraps one ``.model`` statement across many
+    ``+``-prefixed lines.  ngspice accepts that in a netlist, but the rest of
+    this adapter works with one logical line, so join it here.
+    """
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise SpiceConfigError(f"Could not read model file {path}: {exc}") from exc
+
+    logical: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("*") or line.startswith(".$"):
+            continue
+        if line.startswith("+"):
+            if not logical:
+                raise SpiceConfigError(
+                    f"{path.name}: continuation line before any statement"
+                )
+            logical[-1] += " " + line[1:].strip()
+        else:
+            logical.append(line)
+
+    for line in logical:
+        if line.lower().startswith(".model"):
+            return _one_line_model(line, path.name)
+    raise SpiceConfigError(f"{path.name}: no '.model' statement found")
+
+
+def resolve_model() -> tuple[str, str]:
+    """Return ``(model_line, provenance_label)``.
+
+    ``NGSPICE_MODEL_LINE`` (the instructor Starter Kit) wins, then
+    ``NGSPICE_MODEL_FILE``, then the bundled vendor model.  ``NGSPICE_MODEL_SOURCE``
+    overrides the label for the first two sources.
     """
     line = os.environ.get(MODEL_ENV, "").strip()
-    if not line:
-        raise SpiceConfigError(
-            "BJT model is not configured. Set NGSPICE_MODEL_LINE to the "
-            "instructor-verified '.model ... NPN(...)' line."
-        )
-    if "\n" in line or not line.lower().startswith(".model"):
-        raise SpiceConfigError(
-            "NGSPICE_MODEL_LINE must be exactly one '.model ...' line."
-        )
-    model_name_from_line(line)
-    return line
+    if line:
+        if "\n" in line:
+            raise SpiceConfigError(
+                "NGSPICE_MODEL_LINE must be exactly one '.model ...' line."
+            )
+        label = os.environ.get(MODEL_SOURCE_ENV, "").strip() or "NGSPICE_MODEL_LINE"
+        return _one_line_model(line, MODEL_ENV), label
+
+    file_env = os.environ.get(MODEL_FILE_ENV, "").strip()
+    if file_env:
+        path = Path(file_env)
+        if not path.is_file():
+            raise SpiceConfigError(f"{MODEL_FILE_ENV} is not a file: {file_env}")
+        label = os.environ.get(MODEL_SOURCE_ENV, "").strip() or path.name
+        return read_model_file(path), label
+
+    if BUNDLED_MODEL_FILE.is_file():
+        label = os.environ.get(MODEL_SOURCE_ENV, "").strip() or BUNDLED_MODEL_LABEL
+        return read_model_file(BUNDLED_MODEL_FILE), label
+
+    raise SpiceConfigError(
+        "BJT model is not configured. Set NGSPICE_MODEL_LINE (or "
+        "NGSPICE_MODEL_FILE) to the instructor Starter Kit '.model ... NPN(...)' "
+        "line, or restore models/2N3904_onsemi.model."
+    )
+
+
+def get_model_line() -> str:
+    """Return the resolved model line (kept for callers that only need it)."""
+    return resolve_model()[0]
 
 
 # ---------------------------------------------------------------------------

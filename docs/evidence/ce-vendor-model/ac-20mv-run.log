@@ -1,0 +1,23 @@
+
+Note: No compatibility mode selected!
+
+
+Circuit: * lab04 ce voltage-divider reference (real ngspice run)
+
+ASCII raw file "run.raw"
+Doing analysis at TEMP = 27.000000 and TNOM = 27.000000
+
+Using SPARSE 1.3 as Direct Linear Solver
+No. of Data Columns : 11  
+
+No. of Data Rows : 141
+
+Total analysis time (seconds) = 0.0016109
+
+Total elapsed time (seconds) = 0.013 
+
+Total DRAM available = 16117.609 MB.
+DRAM currently available = 8233.941 MB.
+Maximum ngspice program size =   10.348 MB.
+Current ngspice program size =   10.348 MB.
+
