@@ -80,6 +80,31 @@ provenance block. B2–B8 below were re-run with that bundled model on 2026-11-2
 model still overrides it with one environment variable; the gate is **OPEN** until that file is
 supplied.
 
+### Starter Kit search log (2026-11-24)
+
+A full local search was run before adopting the fallback. Search result: **not present on this
+machine**. The handout itself gates the kit on distribution ("รับ Instructor-verified Starter Kit
+สำหรับการเรียก ngspice — ถ้าผู้สอนแจก"), so absence is expected until the instructor hands it out.
+
+| Location searched | Method | Result |
+| --- | --- | --- |
+| `Downloads`, `Desktop`, `Documents`, `OneDrive`, whole `C:` and `D:` | name filter for `*.model *.mod *.lib *.cir *.sp *.net *.spice *.inc`, plus `starter / 2n3904 / q2n / bjt / spice / lab04 / eng29` | Only the repo's own `models/2N3904_onsemi.model` and the repo's generated evidence netlists |
+| Handout HTML | decoded text, `<a href>`/`src` list, base64 payloads, every "Starter Kit" mention | No embedded model, no attachment, no download link; only a description of the kit and the `spice_engine.py` starter layout |
+| All 9 archives (`*.zip`); `*.7z` | archive entry listing for model/netlist members | Only `lab3-main.zip` (this repo's own earlier code) and unrelated Photoshop/CP210x archives |
+| Starter layout signature (`dc_bias.py`, `transistor-simulator/`, `app.js`) | recursive filename search across both drives | 0 hits |
+| Git history, all branches (`main`, `lab03-*`, `feature/input-validation`) | `git log --all --name-only`, deleted-file filter | No model or netlist file was ever committed and then removed |
+| Recycle bins (`C:\$Recycle.Bin`, `D:\$RECYCLE.BIN`) | name filter | Nothing matching |
+| Agent/session storage and local logs | text scan for a `.model <name> NPN(` card | 0 hits |
+| GitHub account `Khatcharin16` | REST API repo list | Only `Gitlab` (this project); no starter-kit repo |
+
+Unrelated SPICE models that do exist on disk (ngspice-47 examples: `PN2222.mod`, `qnva.mod`,
+`Infineon_VBIC.lib`, OSDI/PSP MOSFET cards) were **not** used — none is the instructor device and
+using one would be an invented substitute.
+
+To close the gate, the instructor must supply the `.model` line or file; see README
+"BJT model (instructor Starter Kit)". After it arrives, set `NGSPICE_MODEL_LINE` (+
+`NGSPICE_MODEL_SOURCE="Instructor Starter Kit"`) or `NGSPICE_MODEL_FILE` and rerun B2–B6.
+
 ## UI structure — five clearly separated panels
 
 The handout's three conceptual blocks were refined into a two-region workspace so
