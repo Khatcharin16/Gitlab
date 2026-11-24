@@ -87,8 +87,13 @@ The student's verification for Lab 04:
 
 - confirmed the exact engine banner, batch flags and ASCII raw format from a real
   ngspice run (`docs/evidence/spice-sample/`),
-- checked the netlist and `run.log` in `docs/evidence/ce-test-model/`, and inspected
-  the `i(vic)` column in the regenerated parser fixture,
+- checked the netlist and `run.log` in `docs/evidence/ce-vendor-model/` (the earlier
+  `ce-test-model/` artifacts remain for history), and inspected the `i(vic)` column in
+  the regenerated parser fixture,
+- verified the final model fallback: the Instructor Starter Kit file was not present, so
+  the app reads the cited `models/2N3904_onsemi.model`, labels it
+  `Bundled vendor model (onsemi 2N3904) — NOT instructor verified`, and keeps
+  `NGSPICE_MODEL_LINE` / `NGSPICE_MODEL_FILE` as the one-variable instructor override,
 - compared DC values after changing only RE and transient traces after changing
   both source amplitude and frequency in the browser, and corrected the transient
   display to plot each parsed trace about its own mean so the 20–35 mV sine is
