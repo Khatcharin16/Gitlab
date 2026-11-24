@@ -69,11 +69,68 @@
   </nav>
 
   <main class="lab04-layout">
+    <div class="lab04-setup">
 
-    <!-- BLOCK 1 --------------------------------------------------------- -->
+    <!-- 01 · PARAMETERS ------------------------------------------------- -->
+    <section class="card block-params" aria-labelledby="params-heading">
+      <div class="card-head">
+        <h2 id="params-heading">Parameters</h2>
+        <span class="step-tag">01 · set up</span>
+      </div>
+      <p class="card-intro">Values below go into the ngspice netlist exactly as entered.</p>
+
+      <form id="spice-main-form" method="post" action="/simulate" class="spice-form param-form">
+        <div class="param-group">
+          <h3>Bias &amp; load</h3>
+          {{ param('vcc', 'V<sub>CC</sub>', 'Supply', voltage_units) }}
+          {{ param('r1', 'R<sub>1</sub>', 'Upper divider', resistance_units) }}
+          {{ param('r2', 'R<sub>2</sub>', 'Lower divider', resistance_units) }}
+          {{ param('rc', 'R<sub>C</sub>', 'Collector', resistance_units) }}
+          {{ param('re', 'R<sub>E</sub>', 'Emitter (> 0)', resistance_units,
+                   true, 'min="0"') }}
+          {{ param('rl', 'R<sub>L</sub>', 'Load', resistance_units) }}
+        </div>
+        <div class="param-group">
+          <h3>Source</h3>
+          {{ param('amplitude', 'V<sub>in</sub>', 'Peak', voltage_units) }}
+          {{ param('frequency', 'f', 'Frequency', freq_units) }}
+        </div>
+        <details class="advanced-params">
+          <summary>Coupling capacitors &amp; analytical reference</summary>
+          {{ param('cin', 'C<sub>in</sub>', 'Input coupling', cap_units) }}
+          {{ param('cout', 'C<sub>out</sub>', 'Output coupling', cap_units) }}
+          {{ param('beta', '&beta;', 'Lab 3 β', [('-', '–')], true, 'min="1"') }}
+          {{ param('vbe', 'V<sub>BE</sub>', 'Lab 3 VBE', voltage_units) }}
+        </details>
+
+        <button class="btn-calc" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 3v18l15-9L5 3z"/>
+          </svg>
+          Run Simulation
+        </button>
+        <p id="running-status" class="run-status" role="status" aria-live="polite" hidden>
+          Running ngspice (<span id="running-mode">DC .op</span>) — please wait…
+        </p>
+      </form>
+
+      {% if error_messages %}
+      <div class="error-box" role="alert">
+        <strong>Run failed — no results shown:</strong>
+        <ul>
+        {% for msg in error_messages %}<li>{{ msg }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- 02 · CIRCUIT REFERENCE ------------------------------------------ -->
     <section class="card block-circuit" aria-labelledby="circuit-heading">
-      <div class="card-head"><h2 id="circuit-heading">Circuit &amp; Parameters</h2></div>
-
+      <div class="card-head">
+        <h2 id="circuit-heading">Circuit reference</h2>
+        <span class="step-tag">visual aid</span>
+      </div>
       <figure class="schematic-figure">
         <svg class="ce-schematic" viewBox="0 0 470 294" role="img"
              aria-labelledby="ce-mini-title ce-mini-desc">
@@ -126,8 +183,8 @@
             <circle cx="151" cy="180" r="4"/><circle cx="310" cy="145" r="4"/>
           </g>
         </svg>
-        <figcaption>Reference CE voltage-divider stage from the Lab 04 handout.
-          Schematic is a visual reference, not a circuit editor.</figcaption>
+        <figcaption>Voltage-divider CE stage from the Lab 04 handout.
+          Visual reference only — edit values in the Parameters panel.</figcaption>
         <div class="fixture-summary" aria-label="Current circuit fixture values">
           <div><span>V<sub>CC</sub></span><b>{{ fixture.vcc }}</b>
                <span>R<sub>C</sub></span><b>{{ fixture.rc }}</b></div>
@@ -140,76 +197,81 @@
                C<sub>out</sub> {{ fixture.cout }}</div>
         </div>
       </figure>
+    </section>
+    </div>
 
-      <form id="spice-main-form" method="post" action="/simulate" class="spice-form param-form">
-        <div class="param-group">
-          <h3>Bias &amp; load</h3>
-          {{ param('vcc', 'V<sub>CC</sub>', 'Supply', voltage_units) }}
-          {{ param('r1', 'R<sub>1</sub>', 'Upper divider', resistance_units) }}
-          {{ param('r2', 'R<sub>2</sub>', 'Lower divider', resistance_units) }}
-          {{ param('rc', 'R<sub>C</sub>', 'Collector', resistance_units) }}
-          {{ param('re', 'R<sub>E</sub>', 'Emitter (> 0)', resistance_units,
-                   true, 'min="0"') }}
-          {{ param('rl', 'R<sub>L</sub>', 'Load', resistance_units) }}
-        </div>
-        <div class="param-group">
-          <h3>Source</h3>
-          {{ param('amplitude', 'V<sub>in</sub>', 'Peak', voltage_units) }}
-          {{ param('frequency', 'f', 'Frequency', freq_units) }}
-        </div>
-        <details class="advanced-params">
-          <summary>Coupling capacitors &amp; analytical reference</summary>
-          {{ param('cin', 'C<sub>in</sub>', 'Input coupling', cap_units) }}
-          {{ param('cout', 'C<sub>out</sub>', 'Output coupling', cap_units) }}
-          {{ param('beta', '&beta;', 'Lab 3 β', [('-', '–')], true, 'min="1"') }}
-          {{ param('vbe', 'V<sub>BE</sub>', 'Lab 3 VBE', voltage_units) }}
-        </details>
+    <div class="lab04-output">
 
-        <button class="btn-calc" type="submit">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 3v18l15-9L5 3z"/>
-          </svg>
-          Run Simulation
+    <!-- 03 · RUN CONTROL ------------------------------------------------ -->
+    <section class="card block-control" aria-labelledby="control-heading">
+      <div class="card-head">
+        <h2 id="control-heading">Run control</h2>
+        <span class="step-tag">02 · run</span>
+      </div>
+      <div class="control-row">
+        <div class="spice-analysis-tabs" role="group" aria-label="SPICE analysis mode">
+          {% for key in ['dc', 'ac', 'tran'] %}
+          <label class="spice-analysis-tab{% if analysis == key %} active{% endif %}">
+            <input type="radio" name="analysis" value="{{ key }}"
+                   form="spice-main-form" {% if analysis == key %}checked{% endif %}>
+            {{ {'dc': 'DC', 'ac': 'AC', 'tran': 'Transient'}[key] }}
+          </label>
+          {% endfor %}
+        </div>
+        <button class="btn-calc compact-run" type="submit" form="spice-main-form">
+          Run {{ analysis_label }}
         </button>
-        <p id="running-status" class="run-status" role="status" aria-live="polite" hidden>
-          Running ngspice (<span id="running-mode">DC .op</span>) — please wait…
-        </p>
-      </form>
+      </div>
+      <p class="control-hint">One real ngspice batch run per submit:
+        DC → <code>.op</code>, AC → <code>.ac</code>, Transient → <code>.tran</code>.
+        AC sweep is fixed at 1 Hz – 10 MHz; Source frequency sets the <code>.tran</code>
+        window. AC gain is |Vout/Vin| and does not scale with amplitude.</p>
+      <p class="active-mode">Selected: <strong>{{ analysis_label }}</strong> ·
+        other modes stay empty until selected and run again.</p>
+
+      <article class="engine-block" aria-labelledby="engine-heading">
+        <h3 id="engine-heading">Engine readiness · configuration, not a run result</h3>
+        <div class="spice-status compact-status" role="status">
+          <div><span class="spice-status-key">Engine</span>
+            <span class="badge {{ 'match' if status.engine_ready == 'yes' else 'delta' }}">
+              {{ status.engine_ready }}</span>
+            <code>{{ status.engine }}</code></div>
+          <div><span class="spice-status-key">BJT model</span>
+            <span class="badge {{ 'match' if status.model_ready == 'yes' else 'delta' }}">
+              {{ status.model_ready }}</span>
+            <code>{{ status.model }}</code></div>
+          <div><span class="spice-status-key">Model source</span>
+            <code>{{ status.model_source }}</code></div>
+          {% if status.message %}<p class="spice-status-msg">{{ status.message }}</p>{% endif %}
+        </div>
+      </article>
 
       {% if error_messages %}
-      <div class="error-box" role="alert">
-        <strong>Run failed — no results shown:</strong>
-        <ul>
-        {% for msg in error_messages %}<li>{{ msg }}</li>{% endfor %}
-        </ul>
+      <div class="status bad run-banner" role="alert">
+        <div><div class="status-title">Error — no results shown</div>
+          <div class="status-text">{% for msg in error_messages %}{{ msg }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
+      </div>
+      {% elif results %}
+      <div class="status ok run-banner" role="status">
+        <div><div class="status-title">Success — {{ result.provenance.directive }} completed (1/1)</div>
+          <div class="status-text">ngspice exit {{ result.provenance.returncode }} ·
+            {{ result.provenance.model_name }} ·
+            <code>{{ result.provenance.run_id }}</code></div></div>
+      </div>
+      {% else %}
+      <div class="status warn run-banner" role="status">
+        <div><div class="status-title">Ready — no analysis run yet</div>
+          <div class="status-text">Select DC, AC or Transient and press Run Simulation.</div></div>
       </div>
       {% endif %}
     </section>
 
-    <!-- BLOCK 2 --------------------------------------------------------- -->
+    <!-- 04 · PLOTS ------------------------------------------------------ -->
     <section class="card block-plots" aria-labelledby="plots-heading">
-      <div class="card-head"><h2 id="plots-heading">Simulation &amp; Plots</h2></div>
-
-      <div class="spice-analysis-tabs" role="group" aria-label="SPICE analysis mode">
-        {% for key in ['dc', 'ac', 'tran'] %}
-        <label class="spice-analysis-tab{% if analysis == key %} active{% endif %}">
-          <input type="radio" name="analysis" value="{{ key }}"
-                 form="spice-main-form" {% if analysis == key %}checked{% endif %}>
-          {{ {'dc': 'DC', 'ac': 'AC', 'tran': 'Transient'}[key] }}
-        </label>
-        {% endfor %}
+      <div class="card-head">
+        <h2 id="plots-heading">Simulation plots</h2>
+        <span class="step-tag">03 · view</span>
       </div>
-      <button class="btn-calc compact-run" type="submit" form="spice-main-form">
-        Run {{ analysis_label }}
-      </button>
-      <p class="plot-help">The selected analysis dispatches one real ngspice batch run:
-        DC → <code>.op</code>, AC → <code>.ac</code>, Transient → <code>.tran</code>.
-        Graphs use the handout's illustrative layout but contain only parsed run data.</p>
-      <p class="active-mode">Selected analysis: <strong>{{ analysis_label }}</strong> ·
-        other modes stay empty until you select them and run again.</p>
-      <p class="plot-help">AC sweep is fixed at 1 Hz – 10 MHz. Source Frequency sets the
-        <code>.tran</code> window; AC gain is |Vout/Vin| and does not scale with amplitude.</p>
 
       <figure class="plot-panel">
         <figcaption><span class="plot-title">Bode response
@@ -237,29 +299,14 @@
       </figure>
     </section>
 
-    <!-- BLOCK 3 --------------------------------------------------------- -->
+    <!-- 05 · ENGINEERING RESULTS ---------------------------------------- -->
     <section class="card block-results" aria-labelledby="results-heading">
-      <div class="card-head"><h2 id="results-heading">Engineering Results</h2></div>
+      <div class="card-head">
+        <h2 id="results-heading">Engineering results</h2>
+        <span class="step-tag">04 · measured values</span>
+      </div>
 
-      {% if error_messages %}
-      <div class="status bad run-banner" role="alert">
-        <div><div class="status-title">Error — no results shown</div>
-          <div class="status-text">{% for msg in error_messages %}{{ msg }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
-      </div>
-      {% elif results %}
-      <div class="status ok run-banner" role="status">
-        <div><div class="status-title">Success — {{ result.provenance.directive }} completed (1/1)</div>
-          <div class="status-text">ngspice exit {{ result.provenance.returncode }} ·
-            {{ result.provenance.model_name }} ·
-            <code>{{ result.provenance.run_id }}</code></div></div>
-      </div>
-      {% else %}
-      <div class="status warn run-banner" role="status">
-        <div><div class="status-title">Ready — no analysis run yet</div>
-          <div class="status-text">Select DC, AC or Transient and press Run Simulation.</div></div>
-      </div>
-      {% endif %}
-
+      <div class="results-grid">
       <article class="result-block">
         <h3>DC Operating Point</h3>
         <p class="result-fields">V<sub>B</sub> · V<sub>E</sub> · V<sub>C</sub> · V<sub>CE</sub> · I<sub>C</sub></p>
@@ -331,24 +378,7 @@
         <p class="result-empty not-run">Not run in this mode — select Transient and run again.</p>
         {% else %}<p class="result-empty">No transient run yet.</p>{% endif %}
       </article>
-
-      <article class="engine-block">
-        <h3>Engine readiness (configuration — not a run result)</h3>
-        <p>Run status + model + units</p>
-        <div class="spice-status compact-status" role="status">
-          <div><span class="spice-status-key">Engine</span>
-            <span class="badge {{ 'match' if status.engine_ready == 'yes' else 'delta' }}">
-              {{ status.engine_ready }}</span>
-            <code>{{ status.engine }}</code></div>
-          <div><span class="spice-status-key">BJT model</span>
-            <span class="badge {{ 'match' if status.model_ready == 'yes' else 'delta' }}">
-              {{ status.model_ready }}</span>
-            <code>{{ status.model }}</code></div>
-          <div><span class="spice-status-key">Model source</span>
-            <code>{{ status.model_source }}</code></div>
-          {% if status.message %}<p class="spice-status-msg">{{ status.message }}</p>{% endif %}
-        </div>
-      </article>
+      </div>
 
       {% if result %}
       <details class="spice-provenance">
@@ -373,6 +403,7 @@
         SPICE results, plots and provenance appear here only after real ngspice runs.</p>
       {% endif %}
     </section>
+    </div>
 
   </main>
 

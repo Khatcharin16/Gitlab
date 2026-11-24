@@ -193,6 +193,15 @@ this task; `app/bjt.py` remains untouched.
 - [x] **Step 4:** Confirmed only `app/static/style.css` changed in this polish task
   (`git diff` review), then ran the tests: **53 passed**.
 
+**Follow-up layout clarity pass:** the handout's three conceptual blocks were split into
+five clearly separated panels — Parameters, Circuit reference, Run control, Plots and
+Engineering results — in a two-region workspace. Only `app/templates/simulate.html`,
+`app/static/style.css` and the panel-heading assertions in one route test changed; no
+formula, netlist, parser or validation code was touched. Desktop grid is 400 px + flexible
+output; the 390 px viewport keeps the same DOM/visual order in one column. Tests: **54
+passed**; rendered Impeccable detector: `[]` at 1280×800 and 390×844; real AC POST still
+succeeded with 141 points and no console errors.
+
 ---
 
 ## Task 6 — Browser acceptance B1–B8

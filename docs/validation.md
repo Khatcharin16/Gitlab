@@ -71,26 +71,38 @@ the rendered `/simulate` page at 1280×800 and 390×844 before and after the CSS
 formal two-sub-agent critique workflow was **NOT RUN**; these are deterministic detector
 results plus manual visual review, not a claimed full design critique.
 
-## UI redesign to match the handout
+## UI structure — five clearly separated panels
 
-`/simulate` was restructured into the three named blocks from the instructor file:
+The handout's three conceptual blocks were refined into a two-region workspace so
+that each kind of information has one obvious home. The left **setup** region holds
+the two things you configure/reference; the right **output** region follows the
+task order from running to reading:
 
-1. **Circuit & Parameters** — the voltage-divider CE schematic from the handout,
-   a fixture summary showing the handout's 12 V / 2.2 kΩ / 100 kΩ / 22 kΩ /
-   1 kΩ / 10 kΩ / 10 mV · 1 kHz / 10 µF values, editable fields for `Vcc`, `RC`,
-   `R1`, `R2`, `RE`, `RL`, source amplitude/frequency and coupling capacitors,
-   unit selectors (Ω/kΩ/MΩ, V/mV, Hz/kHz/MHz, pF/nF/µF/mF/F), **Run Simulation**,
-   and a visible `Running ngspice (…)` state.
-2. **Simulation & Plots** — DC / AC / Transient radio modes, a compact contextual
-   **Run …** button, and the handout's two illustrative panels: `Bode response`
-   with `|Gain| (dB)`, `Phase (deg)`, `Frequency (Hz, log scale)`, a dashed
-   `−3 dB from midband` reference, an AC sample table, and `Input / Output
-   waveforms` with `Time (ms)`, explicit `Vin = v(base)` / `Vout = v(out)` node
-   labels, a legend and a transient sample table. Every point comes from the
-   parsed ngspice arrays; there are no fake traces.
-3. **Engineering Results** — `DC Operating Point` (`VB · VE · VC · VCE · IC`),
-   `AC Frequency Response` (`Gain / Phase / Frequency`) and `Transient Response`
-   (`Vin / Vout / Time`) tables, followed by the engine/model block and provenance.
+1. **Parameters** (`01 · set up`) — editable `Vcc`, `RC`, `R1`, `R2`, `RE`, `RL`,
+   source amplitude/frequency and collapsible coupling/analytical fields, with
+   unit selectors (Ω/kΩ/MΩ, V/mV, Hz/kHz/MHz, pF/nF/µF/mF/F), **Run Simulation**
+   and the visible `Running ngspice (…)` state.
+2. **Circuit reference** (`visual aid`) — the handout's voltage-divider CE
+   schematic and a compact fixture summary of the 12 V / 2.2 kΩ / 100 kΩ /
+   22 kΩ / 1 kΩ / 10 kΩ / 10 mV · 1 kHz / 10 µF values. It is explicitly a visual
+   aid, not a competing input step.
+3. **Run control** (`02 · run`) — DC / AC / Transient radios, the contextual
+   **Run …** button, the run banner, and engine/model readiness. Status and
+   provenance of the engine sit next to the action that uses them.
+4. **Simulation plots** (`03 · view`) — `Bode response` with `|Gain| (dB)`,
+   `Phase (deg)`, `Frequency (Hz, log scale)`, the dashed `−3 dB from midband`
+   reference, and `Input / Output waveforms` with `Time (ms)` and explicit
+   `Vin = v(base)` / `Vout = v(out)` legends. Every point comes from parsed
+   ngspice arrays; there are no fake traces.
+5. **Engineering results** (`04 · measured values`) — `DC Operating Point`,
+   `AC Frequency Response` and `Transient Response` in an adaptive three-column
+   grid, followed by the collapsible netlist/log provenance. SPICE numbers and
+   the Lab 3 analytical reference remain separately labelled.
+
+Desktop grid: a 400 px setup rail plus a flexible output region. At ≤1080 px the
+workspace becomes one column in the same DOM/reading order: Parameters → Circuit
+reference → Run control → Plots → Results. No formulas, netlist, parser or
+validation rules changed in this layout pass.
 
 The handout flowchart is now followed exactly: **one submit dispatches only the
 selected analysis** (DC → `.op`, AC → `.ac`, Transient → `.tran`) in one real
@@ -124,6 +136,26 @@ Final detector output: `[]` at 1280×800 and `[]` at 390×844. Before/after visu
 `docs/evidence/B8-impeccable-after-1280.png`, and
 `docs/evidence/B8-handout-layout-mobile-390.png` →
 `docs/evidence/B8-impeccable-after-390.png`.
+
+## Layout clarity pass (final)
+
+The page was then reorganised into the five panels described above. The mechanical
+layout scan (`impeccable detect --scope layout` on the template and stylesheet,
+plus rendered URL scans) and a real AC POST were repeated after the change:
+
+| Check | Observed | Decision |
+| --- | --- | --- |
+| Rendered detector, desktop | `[]` at 1280×800 | **PASS** |
+| Rendered detector, phone | `[]` at 390×844 | **PASS** |
+| Desktop geometry (OpenCode Browser) | `innerWidth 1296`, no document overflow; setup rail **400 px**, output **809 px**; five headings in task order | **PASS** |
+| Phone geometry (390 px iframe) | `innerWidth 390`, `clientWidth/scrollWidth 375`; one **347 px** column, engine and result grids collapse to one column; no page overflow | **PASS** |
+| Real AC run after reorg | `Success — .ac dec 20 1 10meg completed (1/1)`, 141 points, `−3 dB frequency 1.30961 Hz`, 1 SVG, no console errors | **PASS** |
+| Test suite after reorg | **54 passed**; one route test was renamed/updated to assert the five panel headings instead of the old three-card labels | **PASS** |
+
+Evidence: `docs/evidence/B8-layout-1280.png`, `docs/evidence/B8-layout-390.png`,
+`docs/evidence/B8-layout-desktop-result.jpg`. Source-scope Impeccable scanning still
+warns that it cannot resolve the Jinja `url_for('static', …)` stylesheet link; the
+rendered URL scans are the authoritative ones.
 
 ## Engine and model provenance
 
@@ -161,16 +193,16 @@ Final detector output: `[]` at 1280×800 and `[]` at 390×844. Before/after visu
 | B5 · Transient | Select Transient, submit, inspect waveform and result table | 10 mV peak, 1 kHz, 0–5 ms window, `Vin = v(base)`, `Vout = v(out)` | Vin/Vout vs time with voltage and time units; CE inversion visible from real samples | **108** points, **0.000–5.000 ms**, Vin pp **19.92 mV**, Vout pp **34.86 mV**, phase **inverted (~180°), correlation −1.00**; axes `Time (ms)` and node-labelled voltage legend. The traces are drawn as each node's AC component about its own mean (mV), so the ~20/35 mV sine is readable instead of being flattened by the ~1.3 V / 9.2 V DC levels; absolute values remain in the table | Browser evaluate, run id `lab04-tran-txhpwwzd`, `docs/evidence/B5-transient.png`, corrected-view `docs/evidence/B5-transient-ac-view.jpg`, parsed `.tran` raw | **PASS** |
 | B6 · Change source | Change both amplitude and frequency, rerun Transient | Amplitude 10 → 20 mV and frequency 1 → 2 kHz | Waveform, time window and measured values change; not a hard-coded trace | Fixture summary becomes `20 mV · 2 kHz`; time window **0.000–2.500 ms**, Vin pp **39.84 mV**, Vout pp **69.72 mV**; SVG coordinates and run id change | Before/after browser evaluations; new run id `lab04-tran-jthrkcc4`; `docs/evidence/B6-change-source.png` | **PASS** |
 | B7 · Invalid / fail | Set RE = 0 and submit; also test engine/parse exception paths in route tests | RE = 0 Ω; simulated `SpiceEngineError` and `SpiceParseError` | Error shown, no Success state, no stale plot or results | Banner `Error — no results shown` with `RE must be > 0 and <= 1e+07`; `plot-svg` count **0**, no `Success —`, HTTP 400. Exception paths render HTTP 502 with an error and no chart | Browser evaluate + `tests/test_simulate_routes.py`; `docs/evidence/B7-invalid-re.png` | **PASS** |
-| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Desktop and phone layouts from the handout; all blocks, buttons, plots and units readable without clipped critical content | **Desktop**: `innerWidth 1296`, `clientWidth 1281`, `scrollWidth 1281` (no document overflow), grid `357.891px 511.281px 323.828px`; fixture summary, compact Run and active-mode radio visible; AC SVG renders. **Phone**: `innerWidth 390`, `clientWidth/scrollWidth 375`, one `347px` column, compact Run visible; the plot panel scrolls horizontally (`299px` viewport, `560px` SVG) so axis labels stay legible while the document itself has no overflow | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png`, post-polish `B8-impeccable-after-1280.png` and `B8-impeccable-after-390.png` | **PASS** |
+| B8 · UI | Open the page in real 1296 px and 390 px CSS iframe viewports, switch mode and run | Readable, separated panels: Parameters, Circuit reference, Run control, Plots, Results; no clipped critical content | **Desktop**: `innerWidth 1296`, no document overflow, two-column workspace `400px + 809px`, five headings in task order, AC SVG renders. **Phone**: `innerWidth 390`, `clientWidth/scrollWidth 375`, one `347px` column with the same DOM order, engine/result grids collapse to one column, plots keep their horizontal scroller | `docs/evidence/desktop-viewport-check.html`, `mobile-viewport-check.html`, `B8-handout-layout-desktop-1296.png`, `B8-handout-layout-mobile-390.png`, `B8-impeccable-after-1280.png`, `B8-impeccable-after-390.png`, final `B8-layout-1280.png`, `B8-layout-390.png`, `B8-layout-desktop-result.jpg` | **PASS** |
 
 Phone and desktop verification used real CSS layout viewports in Chromium iframes because
 OpenCode Browser has no device-emulation control. It is **not** Playwright MCP device
 emulation; that tool remains NOT RUN. On the phone viewport the plot panel has its own
 horizontal scroller and swipe hint: the SVG keeps a 560 px drawing width for readable
 axes and labels instead of being crushed into 299 px; page `scrollWidth` remains 375 px,
-so no page-level critical content is clipped. Screenshots of the final page:
-`docs/evidence/B8-handout-layout-desktop-1296.png` and
-`docs/evidence/B8-handout-layout-mobile-390.png`.
+so no page-level critical content is clipped. Final layout screenshots:
+`docs/evidence/B8-layout-1280.png` and `docs/evidence/B8-layout-390.png`;
+a real AC result page is in `docs/evidence/B8-layout-desktop-result.jpg`.
 
 Earlier screenshots: `docs/evidence/B1-lab3-regression.png`, `B2-dc-spice.png`,
 `B3-change-re.png`, `B4-ac-bode.png`, `B5-transient.png`, `B6-change-source.png`,
@@ -189,6 +221,7 @@ parser fixtures with the same node names are in `docs/evidence/spice-sample/`.
 | Full suite after Impeccable CSS polish | same command | **53 passed**; only `app/static/style.css` changed, so analytical and SPICE behavior is unchanged | **PASS** |
 | Full suite after transient AC-view fix | same command | **54 passed** (23 Lab 03 + 31 Lab 04); new test proves a 10–20 mV ripple on a large DC offset spans >80 px in the SVG instead of being visually flat | **PASS** |
 | Transient AC-view browser recheck | real `.tran` POST in OpenCode Browser after restart | `Success — .tran 50u 5m 0 50u completed (1/1)`, 2 polylines with y-spans **132 px** (Vin) and **232 px** (Vout), SVG note `AC view: trace − own mean (mV)`, no console errors | **PASS** |
+| Full suite after layout clarity pass | same command | **54 passed**; one route test renamed to assert five separated panels instead of the old three handout labels | **PASS** |
 | Impeccable detector after polish | `impeccable detect --json http://127.0.0.1:5001/simulate --viewport 1280x800` and `390x844` | `[]` at both viewports; result-page AC run still succeeded with 1 parsed SVG and no console errors | **PASS** |
 | Formal Impeccable dual-agent critique | Not attempted | Detector + manual polish only; no two-sub-agent design critique is claimed | **NOT RUN** |
 | Engine failure path | route test monkeypatch raising `SpiceEngineError` | HTTP 502, error text visible, no plot, no success banner | **PASS** |

@@ -99,6 +99,9 @@ The student's verification for Lab 04:
 - ran the Impeccable detector at 1280×800 and 390×844, fixed its contrast/nested-card/
   measure findings in CSS only, confirmed a clean `[]` scan, and rechecked the real AC page
   in OpenCode Browser,
+- reorganised `/simulate` into five separated panels (Parameters, Circuit reference,
+  Run control, Plots, Results), kept the same DOM and visual order on a 390 px viewport,
+  and rechecked a real AC run plus both detector viewports after the change,
 - reviewed `git diff` and `git diff --staged` before committing.
 
 Code locations:
@@ -153,14 +156,14 @@ the matching interpreter in `.venv/bin/`.
 Open:
 
 - <http://127.0.0.1:5000> — Lab 03 analytical DC bias calculator
-- <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator, laid out as
-  the handout's three blocks: **Circuit & Parameters**, **Simulation & Plots**,
-  and **Engineering Results**. It shows the handout fixture summary, unit
-  selectors, a `Running…` state, `Success (1/1)` / `Error` banners, per-mode
-  sample tables, and `Not run in this mode` placeholders. The Bode and waveform
-  panels use an illustrative handout layout but are drawn only from parsed
-  ngspice data. Following the handout flowchart, one submit dispatches just the
-  selected real analysis: DC → `.op`, AC → `.ac`, or Transient → `.tran`.
+- <http://127.0.0.1:5000/simulate> — Lab 04 real ngspice simulator. Its workspace
+  separates five panels in task order: **Parameters** and **Circuit reference**
+  on the left, then **Run control**, **Simulation plots** and **Engineering
+  results** on the right. It includes unit selectors, a fixture summary, a
+  `Running…` state, `Success (1/1)` / `Error` banners, per-mode sample tables,
+  engine/model provenance and `Not run in this mode` placeholders. The Bode and
+  waveform panels are drawn only from parsed ngspice data. One submit dispatches
+  just the selected real analysis: DC → `.op`, AC → `.ac`, or Transient → `.tran`.
 
 For a non-reloading server (used for browser acceptance):
 
@@ -210,7 +213,7 @@ unless ngspice exits 0 and its raw file parses successfully.
 ```
 
 Expected: **54 passed** (23 Lab 03 + 31 Lab 04). Lab 04 adds adapter, parser,
-plot and route tests, including checks for the three handout blocks,
+plot and route tests, including checks for the five separated panels,
 selected-mode dispatch, `VIC`-based IC, midband −3 dB calculation, legends,
 sample tables, the AC-centred transient waveform view and all three result cards. Browser acceptance is recorded in
 [`docs/validation.md`](docs/validation.md).
@@ -254,7 +257,7 @@ Common values: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V.
 | B5 | `.tran` at 10 mV / 1 kHz, 19.92 mV Vin pp, sampled inversion correlation −1.00, AC-centred sine trace from real samples | PASS |
 | B6 | 10 mV / 1 kHz → 20 mV / 2 kHz changed Vin pp 19.92 → 39.84 mV and Vout pp 34.86 → 69.72 mV | PASS |
 | B7 | RE = 0 → `Error — no results shown`, no plot, no Success state | PASS |
-| B8 | Handout layout: 1296 px desktop three columns and 390 px CSS viewport one column; no page overflow; selected plot, fixture summary, sample tables and three result cards render; Impeccable detector clean after CSS polish | PASS |
+| B8 | Layout: 1296 px desktop two-column workspace (400 px setup rail + flexible output) and 390 px CSS viewport one column; no page overflow; five panels, plots, fixture summary and result cards render; Impeccable detector clean after both polish passes | PASS |
 
 Full detail, engine version, model caveat and screenshots are in
 [`docs/validation.md`](docs/validation.md).

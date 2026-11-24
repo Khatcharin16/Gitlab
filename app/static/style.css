@@ -863,17 +863,60 @@ input[type="number"] {
 }
 
 /* --------------------------------------------------------------------------
-   Lab 04 — three-block layout from the instructor handout mockup
+   Lab 04 — two-region workspace: setup on the left, output on the right.
+
+   Reading path: Parameters → Run control → Plots → Results.  The circuit
+   sits under Parameters as a visual reference, not as a competing first step.
+   Spacing rhythm: 8px inside a group, 16px between panels, 20px between the
+   two regions and 24px after the workspace.
    -------------------------------------------------------------------------- */
 .lab04-layout {
   display: grid;
-  grid-template-columns: minmax(290px, 1.05fr) minmax(370px, 1.5fr) minmax(255px, 0.95fr);
-  gap: 18px;
+  grid-template-columns: minmax(330px, 400px) minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
+  margin-top: 4px;
 }
 
-.lab04-layout > .card {
+.lab04-setup,
+.lab04-output {
+  display: grid;
+  gap: 16px;
   min-width: 0;
+}
+
+.lab04-layout > div > .card {
+  min-width: 0;
+}
+
+.lab04-layout .card {
+  padding: 18px 20px 20px;
+}
+
+.lab04-layout .card-head {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.step-tag {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef5fa;
+  border: 1px solid #d7e5ee;
+  color: #4d6579;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.card-intro {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-wrap: pretty;
 }
 
 .card-head h2 {
@@ -1006,6 +1049,12 @@ input[type="number"] {
   margin: 0;
 }
 
+.plot-panel + .plot-panel {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 .plot-empty {
   display: grid;
   place-items: center;
@@ -1015,11 +1064,6 @@ input[type="number"] {
   color: #4d6579;
   font-size: 0.84rem;
   text-align: center;
-}
-
-.result-block {
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e2ebf1;
 }
 
 .result-fields {
@@ -1057,25 +1101,29 @@ input[type="number"] {
 
 .engine-block {
   margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px solid #a7cfc2;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
-.engine-block p {
-  margin: 0 0 6px;
-  font-size: 0.78rem;
-  color: #13645c;
+.engine-block h3 {
+  margin: 0 0 8px;
 }
 
 .compact-status {
   border: 0;
   padding: 0;
   background: transparent;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
 }
 
 .compact-status > div {
   font-size: 0.78rem;
   padding: 3px 0;
+}
+
+.compact-status .spice-status-msg {
+  grid-column: 1 / -1;
 }
 
 .compact-status code {
@@ -1148,15 +1196,47 @@ input[type="number"] {
 .compact-run {
   width: auto;
   align-self: flex-start;
-  margin: 0 0 8px;
-  padding: 7px 14px;
-  font-size: 0.82rem;
+  flex: none;
+  margin: 0;
+  padding: 9px 16px;
+  font-size: 0.86rem;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.block-control .spice-analysis-tabs {
+  margin: 0;
+}
+
+.control-hint,
+.active-mode {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
 }
 
 .active-mode {
-  margin: 0 0 8px;
-  font-size: 0.8rem;
   color: #13645c;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 18px;
+}
+
+.result-block {
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
 }
 
 .plot-legend {
@@ -1190,23 +1270,32 @@ input[type="number"] {
   text-align: left;
 }
 
-@media (max-width: 1240px) {
-  .lab04-layout {
-    grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.4fr);
-  }
-
-  .block-results {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 860px) {
+@media (max-width: 1080px) {
   .lab04-layout {
     grid-template-columns: 1fr;
   }
 
-  .block-results {
-    grid-column: auto;
+  .lab04-setup,
+  .lab04-output {
+    gap: 14px;
+  }
+
+  .compact-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .lab04-layout .card {
+    padding: 16px;
+  }
+
+  .compact-status {
+    grid-template-columns: 1fr;
+  }
+
+  .card-head h2 {
+    font-size: 1.06rem;
   }
 }
 

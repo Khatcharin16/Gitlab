@@ -123,12 +123,14 @@ def test_failed_post_after_success_does_not_keep_old_plot(client, fake_engine):
     assert b"plot-svg" not in failed.data
 
 
-def test_handout_three_blocks_and_selected_mode_dispatch(client, fake_engine):
+def test_lab04_panels_and_selected_mode_dispatch(client, fake_engine):
     """One submit runs only the selected analysis; the other cards stay empty."""
     resp = client.post("/simulate", data=BASE_FORM)
     assert resp.status_code == 200
-    for heading in (b"Circuit &amp; Parameters", b"Simulation &amp; Plots",
-                    b"Engineering Results"):
+    # Parameters, circuit reference, run control, plots and results now sit in
+    # five clearly separated panels instead of three equal-weight cards.
+    for heading in (b"Parameters", b"Circuit reference", b"Run control",
+                    b"Simulation plots", b"Engineering results"):
         assert heading in resp.data
     assert b"Bode response" in resp.data
     assert b"Input / Output waveforms" in resp.data
